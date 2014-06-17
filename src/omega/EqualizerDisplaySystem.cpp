@@ -114,16 +114,23 @@ void EqualizerDisplaySystem::generateEqConfig()
 	// multiple shared data messages sent to slave nodes before they initialize their local objects
 	result += L(ostr("latency %1%", %eqcfg.latency));
 
+	ofmsg("number of nodes: %1%", %eqcfg.numNodes);
+
 	for(int n = 0; n < eqcfg.numNodes; n++)
 	{
 		DisplayNodeConfig& nc = eqcfg.nodes[n];
-		// If all tiles are disabled for this node, skip it.
-		bool enabled = false;
-		for(int i = 0; i < nc.numTiles; i++) enabled |= nc.tiles[i]->enabled;
-		if(!enabled) continue;
+
+		// moved tile disabled check for remote (ie non-local) nodes
+		// because we want the port number to be used in the local node
+		// [Darren 6Jun14]
 
 		if(nc.isRemote)
 		{
+			bool enabled = false;
+			// If all tiles are disabled for this node, skip it.
+			for(int i = 0; i < nc.numTiles; i++) enabled |= nc.tiles[i]->enabled;
+			if(!enabled) continue;
+
 			int port = eqcfg.basePort + nc.port;
 			START_BLOCK(result, "node");
 			START_BLOCK(result, "connection");
@@ -139,6 +146,15 @@ void EqualizerDisplaySystem::generateEqConfig()
 		else
 		{
 			START_BLOCK(result, "appNode");
+			// added to  get port right
+			// [Darren 6Jun14]
+			int port = eqcfg.basePort + nc.port;
+			START_BLOCK(result, "connection");
+			result +=
+				L("type TCPIP") +
+				L(ostr("port %1%", %port));
+			END_BLOCK(result);
+
 			result += L("attributes { thread_model DRAW_SYNC }");
 		}
 
