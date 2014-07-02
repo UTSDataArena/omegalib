@@ -147,7 +147,9 @@ if(MODULES_UPDATE_LIST)
 	find_package(Git)
 	set(REGENERATE_REQUESTED false CACHE BOOL "" FORCE)
 	if(GIT_EXECUTABLE)
-		set(OMEGA_HUB_URL "http://github.com/omega-hub/hub" CACHE STRING "url to git repository containing the module index")
+		# changed to hub url to be data arena version
+		#set(OMEGA_HUB_URL "http://github.com/omega-hub/hub" CACHE STRING "url to git repository containing the module index")
+		set(OMEGA_HUB_URL "/da/repo/projects/daOmegalib/daOmega-hub" CACHE STRING "url to git repository containing the module index")
 		# the modules variable is a list of enabled modues, used to simplify configuration.
 		set(MODULES " " CACHE STRING "The list of enabled modules")
 		separate_arguments(MODULES_LIST WINDOWS_COMMAND "${MODULES}")
