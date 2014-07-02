@@ -147,7 +147,9 @@ set(MODULES_UPDATE_LIST true CACHE BOOL "Enable to download and re-generate the 
 if(MODULES_UPDATE_LIST)
 	set(REGENERATE_REQUESTED false CACHE BOOL "" FORCE)
 	if(GIT_EXECUTABLE)
-		set(OMEGA_HUB_URL "http://omega-hub.github.io/hub" CACHE STRING "url to directory containing the module index")
+		# changed to hub url to be data arena version
+		#set(OMEGA_HUB_URL "http://omega-hub.github.io/hub" CACHE STRING "url to directory containing the module index")
+		set(OMEGA_HUB_URL "/da/repo/projects/daOmegalib/daOmega-hub" CACHE STRING "url to git repository containing the module index")
 		# the modules variable is a list of enabled modues, used to simplify configuration.
 		set(MODULES " " CACHE STRING "The list of enabled modules")
 		separate_arguments(MODULES_LIST WINDOWS_COMMAND "${MODULES}")
