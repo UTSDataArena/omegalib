@@ -372,7 +372,20 @@ void EqualizerDisplaySystem::initialize(SystemManager* sys)
 					// because omain sets the data prefix to the root data dir during
 					// startup.
 					int port = myDisplayConfig.basePort + nc.port;
+					
+					bool quotedCommand = false;
+					
+					if (StringUtils::endsWith(executable, "'")) {
+						executable = executable.substr(0, executable.length() -1);
+						quotedCommand = true;
+					}
+					
 					String cmd = ostr("%1% -c %2%@%3%:%4% -D %5%", %executable %SystemManager::instance()->getAppConfig()->getFilename() %nc.hostname %port %ogetdataprefix());
+					
+					if (quotedCommand) {
+						cmd = cmd + "'";
+					}
+					
 					olaunch(cmd);
 				}
 			}
