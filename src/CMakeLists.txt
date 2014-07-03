@@ -168,8 +168,9 @@ if(MODULES_UPDATE_LIST)
 		
 		# check out the hub url file here instead of directly downloading it directly from github
 		if(EXISTS ${CMAKE_BINARY_DIR}/moduleList)
-			execute_process(COMMAND ${GIT_EXECUTABLE} pull ${OMEGA_HUB_URL} ${CMAKE_BINARY_DIR}/moduleList
-				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/moduleList)
+			set(GIT_ARGS -C ${CMAKE_BINARY_DIR}/moduleList pull)
+			# execute_process(COMMAND ${GIT_EXECUTABLE} ${GIT_ARGS} ${CMAKE_BINARY_DIR}/moduleList)
+			execute_process(COMMAND ${GIT_EXECUTABLE} ${GIT_ARGS} ${CMAKE_BINARY_DIR}/moduleList)
 		else()
 			execute_process(COMMAND ${GIT_EXECUTABLE} clone ${OMEGA_HUB_URL} ${CMAKE_BINARY_DIR}/moduleList)
 		endif()
