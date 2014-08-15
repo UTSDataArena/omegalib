@@ -213,14 +213,17 @@ void EqualizerDisplaySystem::generateEqConfig()
 			}
 			else
 			{
-				String tileCfg = ostr("\t\tchannel \"%1%\" task [DRAW]\n", %tc->name);
+				// added another compound section for completeness
+				String tileCfg = ostr("\t\tcompound { channel \"%1%\" task [DRAW]\n",	%tc->name);
+// 				String tileCfg = ostr("\t\tchannel \"%1%\" task [DRAW]\n", %tc->name);
 				START_BLOCK(tileCfg, "wall");
 				tileCfg +=
 					L("bottom_left [ -1 -0.5 0 ]") +
 					L("bottom_right [ 1 -0.5 0 ]") +
 					L("top_left [ -1 0.5 0 ]");
 				END_BLOCK(tileCfg)
-				result += tileCfg;
+				result += tileCfg + "}\n";
+// 				result += tileCfg;
 			}
 		}
 	}
@@ -259,7 +262,12 @@ String EqualizerDisplaySystem::buildTileConfig(String& indent, const String tile
 	String viewport = ostr("viewport [%1% %2% %3% %4%]", %x %y %width %height);
 
 	String tileCfg = "";
-	if(device != curdevice)
+	
+	// always start a new pipe for each window to render. This bypasses serial rendering
+	// for swap barriers
+	// [Darren 15Aug14]
+	if (true)
+	//if(device != curdevice)
 	{
 		if(curdevice != -1) { END_BLOCK(tileCfg); } // End previous pipe section
 		
