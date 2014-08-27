@@ -205,7 +205,7 @@ void EqualizerDisplaySystem::generateEqConfig()
 				// Added for hardware syncing
 				// [Darren 27Aug14]
 				String hardwareSwapBarrier = Config::getBoolValue("useHardwareSwapBarrier", *mySetting, false) ? "NV_group 1 NV_barrier 0" : "";
-				String tileCfg = ostr("\t\tcompound { swapbarrier { name \"defaultbarrier\" %2% } channel \"%1%\" task [DRAW]\n",	%tc->name, %hardwareSwapBarrier);
+				String tileCfg = ostr("\t\tcompound { swapbarrier { name \"defaultbarrier\" %2% } channel \"%1%\" task [DRAW]\n",	%tc->name %hardwareSwapBarrier);
 				START_BLOCK(tileCfg, "wall");
 				tileCfg +=
 					L("bottom_left [ -1 -0.5 0 ]") +
