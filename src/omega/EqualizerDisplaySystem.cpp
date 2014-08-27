@@ -199,7 +199,10 @@ void EqualizerDisplaySystem::generateEqConfig()
             if(eqcfg.enableSwapSync)
             {
                 //String tileCfg = ostr("\t\tcompound { swapbarrier { name \"defaultbarrier\" } channel ( canvas \"canvas-%1%\" segment \"segment-%2%\" layout \"layout-%3%\" view \"view-%4%\" ) }\n",
-                String tileCfg = ostr("\t\tcompound { swapbarrier { name \"defaultbarrier\" } channel \"%1%\" task [DRAW]\n",	%tc->name);
+                // Added for hardware syncing
+                // [Darren 27Aug14]
+                String hardwareSwapBarrier = Config::getBoolValue("useHardwareSwapBarrier", *mySetting, false) ? "NV_group 1 NV_barrier 0" : "";
+                String tileCfg = ostr("\t\tcompound { swapbarrier { name \"defaultbarrier\" %2% } channel \"%1%\" task [DRAW]\n", %tc->name, %hardwareSwapBarrier);
                 START_BLOCK(tileCfg, "wall");
                 tileCfg +=
                     L("bottom_left [ -1 -0.5 0 ]") +
@@ -260,10 +263,11 @@ String EqualizerDisplaySystem::buildTileConfig(String& indent, const String tile
 
     String tileCfg = "";
 	
-	// always start a new pipe for each window to render. This bypasses serial rendering
-	// for swap barriers
-	// [Darren 15Aug14]
-	if (true)
+	// set a config option to choose whether to use > 1 pipe on a machine
+	// [Darren 18Aug14]
+	bool useParallelPipes = Config::getBoolValue("useParallelPipes", *mySetting, false);
+	
+	if (useParallelPipes || device != curdevice)
 	//if(device != curdevice)
     {
         if(curdevice != -1) { END_BLOCK(tileCfg); } // End previous pipe section
