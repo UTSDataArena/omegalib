@@ -329,6 +329,10 @@ void DisplayTileConfig::parseConfig(const Setting& sTile, DisplayConfig& cfg)
     tc->isHMD = Config::getBoolValue("isHMD", sTile, false);
 
     //tc->viewport = Config::getVector4fValue("viewport", sTile, tc->viewport);
+	
+	// Reading X11 display if present, defaults to 0
+	// [Darren 3Sep14]
+	tc->xDisplay = Config::getIntValue("XDisplay", sTile, 0);
 
     // If the tile config contains a size entry use it, oterwise use the default tile and bezel size data
     if(sTile.exists("size"))
