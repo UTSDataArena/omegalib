@@ -190,6 +190,11 @@ namespace omega
         Vector3f bottomLeft;
         Vector3f bottomRight;
 
+		// Which X11 display to use, default 0
+		// This is ignored by Equalizer if not using X11
+		// [Darren 3Sep14]
+		int xDisplay;
+		
         //! Convenience method to set the tile corners.
         void setCorners(
             const Vector3f& topLeft, 
