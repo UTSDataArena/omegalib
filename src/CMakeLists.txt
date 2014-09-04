@@ -167,16 +167,12 @@ if(MODULES_UPDATE_LIST)
 		file(APPEND ${MODULES_CONFIG_FILE} "//auto-generated file\n")
 		
 		# check out the hub url file here instead of directly downloading it directly from github
-		if(EXISTS ${CMAKE_BINARY_DIR}/moduleList)
+		if(EXISTS ${CMAKE_BINARY_DIR}/moduleList) # pull if exists
 			set(GIT_ARGS -C ${CMAKE_BINARY_DIR}/moduleList pull)
-			# execute_process(COMMAND ${GIT_EXECUTABLE} ${GIT_ARGS} ${CMAKE_BINARY_DIR}/moduleList)
 			execute_process(COMMAND ${GIT_EXECUTABLE} ${GIT_ARGS} ${CMAKE_BINARY_DIR}/moduleList)
-		else()
+		else() # clone if it doesnt
 			execute_process(COMMAND ${GIT_EXECUTABLE} clone ${OMEGA_HUB_URL} ${CMAKE_BINARY_DIR}/moduleList)
 		endif()
-		# download the index CMakeLists file. Download the file to a secondary location, so if the
-		# download fails, we can still use the previous copy of the module list
-		file(DOWNLOAD ${OMEGA_HUB_URL}/CMakeLists.txt ${CMAKE_BINARY_DIR}/moduleList/CMakeLists.txt SHOW_PROGRESS)
 		# If the newly-downloaded file contains something, copy it over the old module list.
 		filestat(SIZE ${CMAKE_BINARY_DIR}/moduleList/CMakeLists.txt MODULE_LIST_SIZE)
 		if(NOT ${MODULE_LIST_SIZE} EQUAL 0)
