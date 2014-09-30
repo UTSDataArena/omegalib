@@ -1474,6 +1474,10 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(SoundEnvironment, getUserPosition)
         PYAPI_METHOD(SoundEnvironment, setUserOrientation)
         PYAPI_METHOD(SoundEnvironment, getUserOrientation)
+		// added for tempo clock
+		// [Darren 29Sep14]
+        PYAPI_METHOD(SoundEnvironment, startTempoClock)
+        PYAPI_METHOD(SoundEnvironment, stopTempoClock)
         ;
 
     // Sound
@@ -1524,6 +1528,10 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(SoundInstance, isRolloffEnabled)
         PYAPI_METHOD(SoundInstance, isRolloffLinear)
         PYAPI_METHOD(SoundInstance, isRolloffLogarithmic)
+		// added for tempo clock
+		// [Darren 29Sep14]
+        PYAPI_METHOD(SoundInstance, isUseTempoClockEnabled)
+        PYAPI_METHOD(SoundInstance, setUseTempoClock)
         ;
 
     // MissionControlClient
