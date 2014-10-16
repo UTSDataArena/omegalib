@@ -1532,6 +1532,11 @@ BOOST_PYTHON_MODULE(omega)
 		// [Darren 29Sep14]
         PYAPI_METHOD(SoundInstance, isUseTempoClockEnabled)
         PYAPI_METHOD(SoundInstance, setUseTempoClock)
+		// added python bindings to following (for seeking)
+		// [Darren 16Oc14]
+        PYAPI_METHOD(SoundInstance, playAtFrame)
+        PYAPI_METHOD(SoundInstance, playStereoAtFrame)
+        PYAPI_METHOD(SoundInstance, setCurrentFrame)
         ;
 
     // MissionControlClient
