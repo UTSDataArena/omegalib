@@ -37,9 +37,75 @@
 
 using namespace omega;
 
+float CylindricalDisplayConfig::mysCanvasAngle = 0.0f;
+
+///////////////////////////////////////////////////////////////////////////////
+Vector3f CylindricalDisplayConfig::computeEyePosition(
+    const Vector3f headSpaceEyePosition,
+    const AffineTransform3& headTransform,
+    const DrawContext& dc)
+{
+    Vector3f pe = headSpaceEyePosition;
+    // Transform eye with head position / orientation. After this, eye position
+    // and tile coordinates are all in the same reference frame.
+    if(dc.tile->displayConfig.panopticStereoEnabled)
+    {
+        // CAVE2 SIMPLIFICATION: We are just interested in adjusting the observer yaw
+        AffineTransform3 ht = AffineTransform3::Identity();
+        ht.translate(headTransform.translation());
+        pe = ht.rotate(
+        AngleAxis(-dc.tile->yaw * Math::DegToRad, Vector3f::UnitY())) * pe;
+    }
+    else
+    {
+        pe = headTransform * pe;
+    }
+    return pe;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+AffineTransform3 CylindricalDisplayConfig::computeViewTransform(
+    const AffineTransform3& originalViewTransform,
+    const AffineTransform3& screenTransform,
+    const DrawContext& dc)
+{
+    AffineTransform3 ht = AffineTransform3::Identity();
+    ht = ht.rotate(AngleAxis(-mysCanvasAngle, Vector3f::UnitY()));
+    return screenTransform * ht * originalViewTransform;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void CylindricalDisplayConfig::onCanvasChange(DisplayConfig& cfg)
+{
+    // Find pixel coordinates of center of new canvas
+    const Rect& c = cfg.getCanvasRect();
+    int px = c.x() + c.width() / 2;
+    int py = c.y() + c.height() / 2;
+    
+    // Find the 3D position of that pixel
+    std::pair<bool, Vector3f> res = cfg.getPixelPosition(px, py);
+    if(res.first)
+    {
+        // Normalize direction (we don't care about Y)
+        float l = sqrt(res.second[0]*res.second[0] + res.second[2]*res.second[2]);
+        float x = res.second[0] / l;
+        float z = res.second[2] / l;
+        
+        // compute angle between the two
+        float a = acos(-z);
+        if(x < 0) a = -a;
+        
+        mysCanvasAngle = a;
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 bool CylindricalDisplayConfig::buildConfig(DisplayConfig& cfg, Setting& scfg)
 {
+    // Register view and eye position transformation functions
+    cfg.computeEyePosition = &CylindricalDisplayConfig::computeEyePosition;
+    cfg.computeViewTransform = &CylindricalDisplayConfig::computeViewTransform;
+
     Vector2i numTiles = Config::getVector2iValue("numTiles", scfg);
     cfg.tileGridSize = numTiles;
 

@@ -375,14 +375,7 @@ void EqualizerDisplaySystem::initialize(SystemManager* sys)
                 // because omain sets the data prefix to the root data dir during
                 // startup.
                 int port = myDisplayConfig.basePort + nc.port;
-
-                bool quotedCommand = false;
-
-                if (StringUtils::endsWith(executable, "'")) {
-                    executable = executable.substr(0, executable.length() -1);
-                    quotedCommand = true;
-                }
-
+                
                 const Rect& ic = myDisplayConfig.getCanvasRect();
                 String initialCanvas = ostr("%1%,%2%,%3%,%4%", %ic.x() %ic.y() %ic.width() %ic.height());
                 
@@ -393,11 +386,6 @@ void EqualizerDisplaySystem::initialize(SystemManager* sys)
                     %port 
                     %ogetdataprefix() 
                     %initialCanvas);
-
-                if (quotedCommand) {
-                    cmd = cmd + "'";
-                }
-
                 olaunch(cmd);
             }
         }

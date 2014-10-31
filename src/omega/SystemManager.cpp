@@ -243,6 +243,7 @@ void SystemManager::setupConfig(Config* appcfg)
             if(defaultCfg->load())
             {
                 String systemCfgName = (const char*)defaultCfg->lookup("config/systemConfig");
+                ofmsg("Default system configuration file: %1%", %systemCfgName);
                 mySystemConfig = new Config(systemCfgName);
             }
             else
@@ -501,7 +502,7 @@ void SystemManager::initModules()
             {
                 Setting& sm = sConfig[i];
                 String modname = sm.getName();
-                String modclass = sm["class"];
+                String modclass = (const char*)sm["class"];
 
                 // If module has a package name, import it.
                 Vector<String> args = StringUtils::split(modclass, ".");
@@ -521,7 +522,7 @@ void SystemManager::initModules()
                 {
                     Setting& sm = sConfig[i];
                     String modname = sm.getName();
-                    String modclass = sm["class"];
+                    String modclass = (const char*)sm["class"];
 
                     // If module has a package name, import it.
                     Vector<String> args = StringUtils::split(modclass, ".");

@@ -1181,6 +1181,7 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(Event, setProcessed)
         PYAPI_GETTER(Event, getPosition)
         PYAPI_GETTER(Event, getOrientation)
+        PYAPI_GETTER(Event, getExtraDataInt)
         ;
 
     PYAPI_ENUM(Node::TransformSpace, Space)
@@ -1329,11 +1330,6 @@ BOOST_PYTHON_MODULE(omega)
         .def("setReadbackTarget", &CameraOutput::setReadbackTarget, CameraOutputReadbackOverloads())
         ;
 
-    PYAPI_ENUM(Camera::ViewMode, ViewMode)
-            PYAPI_ENUM_VALUE(Camera, Immersive)
-            PYAPI_ENUM_VALUE(Camera, Classic)
-         ;
-
     // Camera
     PYAPI_REF_CLASS(Camera, SceneNode)
         PYAPI_REF_GETTER(Camera, getOutput)
@@ -1357,13 +1353,12 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(Camera, isControllerEnabled)
         PYAPI_METHOD(Camera, localToWorldPosition)
         PYAPI_METHOD(Camera, localToWorldOrientation)
+        PYAPI_METHOD(Camera, lookAt)
         PYAPI_METHOD(Camera, focusOn)
         PYAPI_METHOD(Camera, setViewPosition)
         PYAPI_GETTER(Camera, getViewPosition)
         PYAPI_METHOD(Camera, setViewSize)
         PYAPI_GETTER(Camera, getViewSize)
-        PYAPI_METHOD(Camera, setViewMode)
-        PYAPI_GETTER(Camera, getViewMode)
         PYAPI_METHOD(Camera, getCameraId)
         PYAPI_METHOD(Camera, setMask)
         PYAPI_METHOD(Camera, getMask)
@@ -1413,6 +1408,11 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(DrawInterface, drawText)
         PYAPI_METHOD(DrawInterface, drawRectTexture)
         PYAPI_METHOD(DrawInterface, drawCircleOutline)
+        PYAPI_METHOD(DrawInterface, program)
+        PYAPI_METHOD(DrawInterface, getOrCreateProgram)
+        PYAPI_METHOD(DrawInterface, getOrCreateProgramFromSource)
+        PYAPI_METHOD(DrawInterface, findUniform)
+        PYAPI_METHOD(DrawInterface, uniformFloat)
         PYAPI_REF_GETTER(DrawInterface, createFont)
         PYAPI_REF_GETTER(DrawInterface, getFont)
         PYAPI_REF_GETTER(DrawInterface, getDefaultFont)
@@ -1669,10 +1669,11 @@ void omegaPythonApiInit()
     omega::PythonInterpreter* interp = SystemManager::instance()->getScriptInterpreter();
 
     // Compile, load and import the euclid module.
-    PyObject* euclidModuleCode = Py_CompileString(euclid_source, "euclid", Py_file_input);
+    const char* moduleName = "euclid";
+    PyObject* euclidModuleCode = Py_CompileString((char*)euclid_source, moduleName, Py_file_input);
     if(euclidModuleCode != NULL)
     {
-        sEuclidModule = PyImport_ExecCodeModule("euclid", euclidModuleCode);
+        sEuclidModule = PyImport_ExecCodeModule((char*)moduleName, euclidModuleCode);
         interp->eval("from euclid import *");
     }
 
