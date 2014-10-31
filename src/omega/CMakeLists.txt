@@ -15,6 +15,7 @@ SET( srcs
 		Camera.cpp
 		CameraController.cpp
 		DisplayConfig.cpp
+		DisplayTileConfig.cpp
 		DisplayUtils.cpp
 		DrawContext.cpp
 		KeyboardMouseCameraController.cpp
@@ -40,6 +41,7 @@ SET( srcs
 		ObserverUpdateServiceExt.cpp
         osystem.cpp
 		PixelData.cpp
+        Platform.cpp
 		Pointer.cpp
 		PythonInterpreter.cpp
 		PlanarDisplayConfig.cpp
@@ -71,6 +73,7 @@ SET( headers
 		${OmegaLib_SOURCE_DIR}/include/omega/CameraController.h
 		${OmegaLib_SOURCE_DIR}/include/omega/Color.h
 		${OmegaLib_SOURCE_DIR}/include/omega/DisplayConfig.h
+		${OmegaLib_SOURCE_DIR}/include/omega/DisplayTileConfig.h
 		${OmegaLib_SOURCE_DIR}/include/omega/DisplayUtils.h
 		${OmegaLib_SOURCE_DIR}/include/omega/KeyboardMouseCameraController.h
 		${OmegaLib_SOURCE_DIR}/include/omega/GamepadCameraController.h
@@ -101,6 +104,7 @@ SET( headers
         ${OmegaLib_SOURCE_DIR}/include/omega/otypes.h
 		${OmegaLib_SOURCE_DIR}/include/omega/PixelData.h
 		${OmegaLib_SOURCE_DIR}/include/omega/PlanarDisplayConfig.h
+		${OmegaLib_SOURCE_DIR}/include/omega/Platform.h
 		${OmegaLib_SOURCE_DIR}/include/omega/Pointer.h
 		${OmegaLib_SOURCE_DIR}/include/omega/PythonInterpreter.h
 		${OmegaLib_SOURCE_DIR}/include/omega/Renderable.h

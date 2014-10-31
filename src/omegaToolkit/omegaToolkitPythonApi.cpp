@@ -35,11 +35,13 @@
 #include "omega/PythonInterpreter.h"
 #include "omega/SystemManager.h"
 #include "omega/Engine.h"
+#include "omegaToolkit/CameraStereoSwitcher.h"
 #include "omegaToolkit/SceneEditorModule.h"
 #include "omegaToolkit/UiModule.h"
 #include "omegaToolkit/ui/MenuManager.h"
 #include "omegaToolkit/ToolkitUtils.h"
 #include "omegaToolkit/ImageBroadcastModule.h"
+#include "omegaToolkit/WandPointerSwitcher.h"
 
 #ifdef OMEGA_USE_PYTHON
 
@@ -57,6 +59,12 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ImageBroadcastModule_addChannel, addChann
 ///////////////////////////////////////////////////////////////////////////////
 BOOST_PYTHON_MODULE(omegaToolkit)
 {
+    // CameraStereoSwitcher
+    PYAPI_REF_BASE_CLASS(CameraStereoSwitcher)
+        PYAPI_STATIC_REF_GETTER(CameraStereoSwitcher, create)
+        ;
+
+    // ImageBroadcastModule
     PYAPI_REF_BASE_CLASS(ImageBroadcastModule)
         PYAPI_STATIC_REF_GETTER(ImageBroadcastModule, instance)
         .def("addChannel", &ImageBroadcastModule::addChannel, ImageBroadcastModule_addChannel())
@@ -68,7 +76,8 @@ BOOST_PYTHON_MODULE(omegaToolkit)
         PYAPI_ENUM_VALUE(Container, LayoutFree)
         PYAPI_ENUM_VALUE(Container, LayoutHorizontal)
         PYAPI_ENUM_VALUE(Container, LayoutVertical)
-        //PYAPI_ENUM_VALUE(Container, LayoutGrid)
+        PYAPI_ENUM_VALUE(Container, LayoutGridHorizontal)
+        PYAPI_ENUM_VALUE(Container, LayoutGridVertical)
         ;
 
     // MenuItem
@@ -209,6 +218,7 @@ BOOST_PYTHON_MODULE(omegaToolkit)
     void (Widget::*setPosition1)(const Vector2f&) = &Widget::setPosition;
     void (Widget::*setSize1)(const Vector2f&) = &Widget::setSize;
     PYAPI_REF_BASE_CLASS(Widget)
+        PYAPI_STATIC_REF_GETTER(Widget, create)
         PYAPI_METHOD(Widget, setVisible)
         PYAPI_METHOD(Widget, isVisible)
         .def("setPosition", setPosition1)
@@ -260,6 +270,9 @@ BOOST_PYTHON_MODULE(omegaToolkit)
         PYAPI_METHOD(Widget, isSizeAnchorEnabled)
         PYAPI_METHOD(Widget, setSizeAnchor)
         PYAPI_GETTER(Widget, getSizeAnchor)
+        PYAPI_METHOD(Widget, updateSize)
+        PYAPI_METHOD(Widget, setPostDrawCallback)
+        PYAPI_METHOD(Widget, setPreDrawCallback)
         // Navigation
         PYAPI_METHOD(Widget, isNavigationEnabled)
         PYAPI_METHOD(Widget, setNavigationEnabled)
@@ -298,6 +311,10 @@ BOOST_PYTHON_MODULE(omegaToolkit)
         PYAPI_METHOD(Container, getHorizontalAlign)
         PYAPI_METHOD(Container, setVerticalAlign)
         PYAPI_METHOD(Container, getVerticalAlign)
+        PYAPI_METHOD(Container, setGridRows)
+        PYAPI_METHOD(Container, getGridRows)
+        PYAPI_METHOD(Container, setGridColumns)
+        PYAPI_METHOD(Container, getGridColumns)
 
         // Interaction
         PYAPI_METHOD(Container, isEventInside)
@@ -329,6 +346,7 @@ BOOST_PYTHON_MODULE(omegaToolkit)
         PYAPI_METHOD(Image, setData)
         PYAPI_METHOD(Image, setSourceRect)
         PYAPI_METHOD(Image, setDestRect)
+        PYAPI_METHOD(Image, tile)
         ;
 
     // Slider
@@ -370,6 +388,9 @@ void OTK_API omegaToolkitPythonApiInit()
         // import the module by default
         omega::PythonInterpreter* interp = SystemManager::instance()->getScriptInterpreter();
         interp->eval("from omegaToolkit import *");
+
+        ServiceManager* sm = SystemManager::instance()->getServiceManager();
+        sm->registerService("WandPointerSwitcher", (ServiceAllocator)WandPointerSwitcher::New);
     }
 }
 

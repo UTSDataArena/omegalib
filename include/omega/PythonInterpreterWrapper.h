@@ -36,6 +36,12 @@
     #undef _DEBUG
 #endif
 
+#ifdef OMEGA_OS_LINUX
+    // Remove redefinition warnings in linux
+    #undef _POSIX_C_SOURCE
+    #undef _XOPEN_SOURCE
+#endif
+
 #include <Python.h>
 
 #ifdef PYTHON_DEBUG_HACK
@@ -76,14 +82,14 @@ using namespace boost::python;
 
 //! Declare a new class with by-reference semantics and that supports reference counting. 
 //! baseName is the id of the base for this class
-#define PYAPI_REF_CLASS(className, baseName) class_<className, bases<baseName>, boost::noncopyable, Ref<className> >(#className, no_init)
+#define PYAPI_REF_CLASS(className, baseName) class_<className, bases<baseName>, boost::noncopyable, omega::Ref<className> >(#className, no_init)
 //! Declare a new class with by-reference semantics and that supports reference counting. 
 //! The class has no base for the python API. Its C++ implementation should derive from ReferenceType.
-#define PYAPI_REF_BASE_CLASS(className) class_<className, boost::noncopyable, Ref<className> >(#className, no_init)
+#define PYAPI_REF_BASE_CLASS(className) class_<className, boost::noncopyable, omega::Ref<className> >(#className, no_init)
 //! Declare a new class with by-reference semantics and that supports reference counting. The class has an empty constuctor.
-#define PYAPI_REF_BASE_CLASS_WITH_CTOR(className) class_<className, boost::noncopyable, Ref<className> >(#className)
+#define PYAPI_REF_BASE_CLASS_WITH_CTOR(className) class_<className, boost::noncopyable, omega::Ref<className> >(#className)
 //! Declare a new class with by-reference semantics and that supports reference counting. The class has an empty constuctor.
-#define PYAPI_REF_CLASS_WITH_CTOR(className, baseName) class_<className, bases<baseName>, boost::noncopyable, Ref<className> >(#className)
+#define PYAPI_REF_CLASS_WITH_CTOR(className, baseName) class_<className, bases<baseName>, boost::noncopyable, omega::Ref<className> >(#className)
 
 //! Declare a method. Can be used for methods returning void, or returning simple plain types like int, float, bool etc.
 #define PYAPI_METHOD(className, methodName) .def(#methodName, &className::methodName)
@@ -91,6 +97,8 @@ using namespace boost::python;
 #define PYAPI_GETTER(className, methodName) .def(#methodName, &className::methodName, return_value_policy<return_by_value>())
 //! Declare a method returning an object by reference
 #define PYAPI_REF_GETTER(className, methodName) .def(#methodName, &className::methodName, return_value_policy<return_by_smart_ptr>())
+//! Declare a static method. Can be used for static methods returning void, or returning simple plain types like int, float, bool etc.
+#define PYAPI_STATIC_METHOD(className, methodName) .def(#methodName, &className::methodName).staticmethod(#methodName)
 //! Declare a static method returning an object by reference
 #define PYAPI_STATIC_REF_GETTER(className, methodName) .def(#methodName, &className::methodName, return_value_policy<return_by_smart_ptr>()).staticmethod(#methodName)
 #define PYAPI_PROPERTY(className, propName) .def_readwrite(#propName, &className::propName)
