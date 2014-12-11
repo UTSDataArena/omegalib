@@ -98,8 +98,6 @@ void DrawContext::drawFrame(uint64 frameNum)
     // If the current tile is not enabled, return now.
     if(!tile->enabled) return;
 
-    DisplaySystem* ds = renderer->getDisplaySystem();
-
     this->frameNum = frameNum;
 
     FrameInfo curFrame(frameNum, gpuContext);
@@ -107,6 +105,26 @@ void DrawContext::drawFrame(uint64 frameNum)
     // Signal the start of a new frame
     renderer->startFrame(curFrame);
 
+    // Setup the stencil buffer if needed.
+    // The stencil buffer is set up if th tile is using an interleaved mode (line or pixel)
+    // or if the tile is left in default mode and the global stereo mode is an interleaved mode
+    DisplaySystem* ds = renderer->getDisplaySystem();
+    DisplayConfig& dcfg = ds->getDisplayConfig();
+    if(tile->stereoMode == DisplayTileConfig::LineInterleaved ||
+        tile->stereoMode == DisplayTileConfig::ColumnInterleaved ||
+        tile->stereoMode == DisplayTileConfig::PixelInterleaved ||
+        (tile->stereoMode == DisplayTileConfig::Default && (
+                dcfg.stereoMode == DisplayTileConfig::LineInterleaved ||
+                dcfg.stereoMode == DisplayTileConfig::ColumnInterleaved ||
+                dcfg.stereoMode == DisplayTileConfig::PixelInterleaved)))
+    {
+        if(!stencilInitialized)
+        {
+            initializeStencilInterleaver();
+            stencilInitialized = true;
+        }
+    }
+    
     // Clear the active main frame buffer.
     clear();
     renderer->clear(*this);
@@ -201,46 +219,36 @@ void DrawContext::updateViewport()
     pvpy = tile->activeRect.height() - (pvpy + pvph);
 
     // Setup side-by-side stereo if needed.
-    if(tile->stereoMode == DisplayTileConfig::SideBySide ||
-        (tile->stereoMode == DisplayTileConfig::Default && 
-        dcfg.stereoMode == DisplayTileConfig::SideBySide))
+    if(isSideBySideStereoEnabled())
     {
-        if(dcfg.forceMono)
-        {
-            // Runtime stereo disable switch
-            viewport = Rect(pvpx, pvpy, pvpw, pvph);
-        }
-        else
-        {
-            // Do we want to invert stereo?
-            bool invertStereo = ds->getDisplayConfig().invertStereo || tile->invertStereo; 
+        // Do we want to invert stereo?
+        bool invertStereo = ds->getDisplayConfig().invertStereo || tile->invertStereo; 
 
-            if(eye == DrawContext::EyeLeft)
+        if(eye == DrawContext::EyeLeft)
+        {
+            if(invertStereo)
             {
-                if(invertStereo)
-                {
-                    viewport = Rect(pvpx + pvpw / 2, pvpy, pvpw / 2, pvph);
-                }
-                else
-                {
-                    viewport = Rect(pvpx, pvpy, pvpw / 2, pvph);
-                }
-            }
-            else if(eye == DrawContext::EyeRight)
-            {
-                if(invertStereo)
-                {
-                    viewport = Rect(pvpx, pvpy, pvpw / 2, pvph);
-                }
-                else
-                {
-                    viewport = Rect(pvpx + pvpw / 2, pvpy, pvpw / 2, pvph);
-                }
+                viewport = Rect(pvpx + pvpw / 2, pvpy, pvpw / 2, pvph);
             }
             else
             {
-                viewport = Rect(pvpx, pvpy, pvpw, pvph);
+                viewport = Rect(pvpx, pvpy, pvpw / 2, pvph);
             }
+        }
+        else if(eye == DrawContext::EyeRight)
+        {
+            if(invertStereo)
+            {
+                viewport = Rect(pvpx, pvpy, pvpw / 2, pvph);
+            }
+            else
+            {
+                viewport = Rect(pvpx + pvpw / 2, pvpy, pvpw / 2, pvph);
+            }
+        }
+        else
+        {
+            viewport = Rect(pvpx, pvpy, pvpw, pvph);
         }
     }
     else
@@ -285,6 +293,7 @@ void DrawContext::setupInterleaver()
             initializeStencilInterleaver();
         }
     }
+    
     // Configure stencil test when rendering interleaved with stencil is enabled.
     if(stencilInitialized)
     {
@@ -417,6 +426,14 @@ void DrawContext::updateTransforms(
         tile->activeRect.y() - viewport.y() + tile->activeRect.height() - viewport.height());
 
     Vector2f pM(viewport.width(), viewport.height());
+    // If we are on side by side mode, the viewport is half horizontal size:
+    // get back the original width here since we need it to compute the correct
+    // transform
+    if(isSideBySideStereoEnabled())
+    {
+        pm.x() = tile->activeRect.x();
+        pM.x() *= 2;
+    }
 
     // Normalized viewport position
     Vector2f viewMin = (pm - tile->position.cast<real>()).cwiseProduct(a);
