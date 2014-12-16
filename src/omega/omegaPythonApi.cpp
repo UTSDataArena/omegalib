@@ -1292,6 +1292,7 @@ BOOST_PYTHON_MODULE(omega)
             PYAPI_ENUM_VALUE(DisplayTileConfig, ColumnInterleaved)
             PYAPI_ENUM_VALUE(DisplayTileConfig, PixelInterleaved)
             PYAPI_ENUM_VALUE(DisplayTileConfig, SideBySide)
+            PYAPI_ENUM_VALUE(DisplayTileConfig, TopBottom) // added for Data Arena
             PYAPI_ENUM_VALUE(DisplayTileConfig, Default)
             ;
 

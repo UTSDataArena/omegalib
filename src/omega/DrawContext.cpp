@@ -222,7 +222,7 @@ void DrawContext::updateViewport()
     if(isSideBySideStereoEnabled())
     {
         // Do we want to invert stereo?
-        bool invertStereo = ds->getDisplayConfig().invertStereo || tile->invertStereo; 
+        bool invertStereo = ds->getDisplayConfig().invertStereo || tile->invertStereo;
 
         if(eye == DrawContext::EyeLeft)
         {
@@ -244,6 +244,38 @@ void DrawContext::updateViewport()
             else
             {
                 viewport = Rect(pvpx + pvpw / 2, pvpy, pvpw / 2, pvph);
+            }
+        }
+        else
+        {
+            viewport = Rect(pvpx, pvpy, pvpw, pvph);
+        }
+    }
+    else if(isTopBottomStereoEnabled())
+    {
+        // Do we want to invert stereo?
+        bool invertStereo = ds->getDisplayConfig().invertStereo || tile->invertStereo;
+
+        if(eye == DrawContext::EyeLeft)
+        {
+            if(invertStereo)
+            {
+                viewport = Rect(pvpx, pvpy + pvph / 2, pvpw, pvph / 2);
+            }
+            else
+            {
+                viewport = Rect(pvpx, pvpy, pvpw, pvph / 2);
+            }
+        }
+        else if(eye == DrawContext::EyeRight)
+        {
+            if(invertStereo)
+            {
+                viewport = Rect(pvpx, pvpy, pvpw, pvph / 2);
+            }
+            else
+            {
+                viewport = Rect(pvpx, pvpy + pvph / 2, pvpw, pvph / 2);
             }
         }
         else
@@ -433,6 +465,11 @@ void DrawContext::updateTransforms(
     {
         pm.x() = tile->activeRect.x();
         pM.x() *= 2;
+    }
+    else if(isTopBottomStereoEnabled())
+    {
+        pm.y() = tile->activeRect.y();
+        pM.y() *= 2;
     }
 
     // Normalized viewport position

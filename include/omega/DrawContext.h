@@ -121,6 +121,13 @@ namespace omega
         //! global mono force mode flag is disabled.
         bool isSideBySideStereoEnabled();
 
+        //! Utility method: returns true if top/bottom stereo is enabled
+        //! in this context.
+        //! @remarks Top bottom is enabled if tile stereo mode is top bottom,
+        //! if tile mode is default and the global mode is top bottom and the
+        //! global mono force mode flag is disabled.
+        bool isTopBottomStereoEnabled();
+
         //! Stencil initialization value. If = 1, stencil has been initialized
         //! if = 0, stencil will be initialized this frame. If = -N, stencil
         //! will be initialized in N frames. The frame delay is useful to make
@@ -157,6 +164,19 @@ namespace omega
         if(tile->stereoMode == DisplayTileConfig::SideBySide ||
             (tile->stereoMode == DisplayTileConfig::Default &&
             dcfg.stereoMode == DisplayTileConfig::SideBySide))
+        {
+            return !dcfg.forceMono;
+        }
+        return false;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline bool DrawContext::isTopBottomStereoEnabled()
+    {
+        DisplayConfig& dcfg = tile->displayConfig;
+        if(tile->stereoMode == DisplayTileConfig::TopBottom ||
+            (tile->stereoMode == DisplayTileConfig::Default &&
+            dcfg.stereoMode == DisplayTileConfig::TopBottom))
         {
             return !dcfg.forceMono;
         }
