@@ -59,7 +59,8 @@ void DisplayTileConfig::parseConfig(const Setting& sTile, DisplayConfig& cfg)
     else if(sm == "rowinterleaved") tc->stereoMode = DisplayTileConfig::LineInterleaved;
     else if(sm == "columninterleaved") tc->stereoMode = DisplayTileConfig::ColumnInterleaved;
     else if(sm == "sidebyside") tc->stereoMode = DisplayTileConfig::SideBySide;
-                
+    else if(sm == "topbottom") tc->stereoMode = DisplayTileConfig::TopBottom;
+
     tc->invertStereo = Config::getBoolValue("invertStereo", sTile);
     tc->enabled = Config::getBoolValue("enabled", sTile);
                 
