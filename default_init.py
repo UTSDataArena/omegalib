@@ -35,7 +35,7 @@ def _displayWand(value):
 		queueCommand("getSceneManager().hideWand(0)")
 		
 def _setSoundServerVolume( value ):
-	newVolume = value - 30
+	newVolume = value - 90
 	globalVolumeLabel.setText("Global Volume: " + str(newVolume) )
 	soundEnv.setServerVolume(newVolume)
 	
@@ -87,11 +87,11 @@ def _onAppStart():
 	
 		globalVolumeLabel = sysmnu.addLabel("Global Volume: --")
 		
-		value = serverVolume + 30
+		value = serverVolume + 90
 		globalVolumeLabel.setText("Global Volume: " + str(serverVolume))
 	
-		ss = sysmnu.addSlider(39, "_setSoundServerVolume(%value%)")
-		ss.getSlider().setValue(30)
+		ss = sysmnu.addSlider(99, "_setSoundServerVolume(%value%)")
+		ss.getSlider().setValue(60)
 		ss.getWidget().setWidth(200)
 		
 		ss.getSlider().setValue(value)
@@ -118,7 +118,10 @@ def onUpdate(frame, t, dt):
 	global shuttingDown
 	global fadeOutVal
 	if(shuttingDown):
-		if(fadeOutVal >= 1): oexit()
+		if(fadeOutVal >= 1):
+			if( isSoundEnabled() ):
+				scsound.shutdown()
+			oexit()
 		else:
 			uim = UiModule.instance()
 			ui = uim.getUi()
