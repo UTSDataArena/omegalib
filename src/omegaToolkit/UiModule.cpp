@@ -1,12 +1,12 @@
 /******************************************************************************
 * THE OMEGA LIB PROJECT
 *-----------------------------------------------------------------------------
-* Copyright 2010-2014		Electronic Visualization Laboratory,
+* Copyright 2010-2015		Electronic Visualization Laboratory,
 *							University of Illinois at Chicago
 * Authors:
 *  Alessandro Febretti		febret@gmail.com
 *-----------------------------------------------------------------------------
-* Copyright (c) 2010-2014, Electronic Visualization Laboratory,
+* Copyright (c) 2010-2015, Electronic Visualization Laboratory,
 * University of Illinois at Chicago
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without modification,
@@ -76,7 +76,7 @@ UiModule::UiModule():
 ///////////////////////////////////////////////////////////////////////////////
 void UiModule::initialize()
 {
-    omsg("UiModule initializing...");
+    //omsg("UiModule initializing...");
 
     myWidgetFactory = new ui::DefaultWidgetFactory(getEngine());
     myUi = new ui::Container(getEngine());
@@ -84,20 +84,10 @@ void UiModule::initialize()
     myUi->setLayout(ui::Container::LayoutFree);
     myUi->setBlendMode(ui::Widget::BlendNormal);
     
-    // If we let the engine act as the default event handler we end up having infinite loops.
-    // The engine shouldn't really be acting as a default handler. Only user code should.
-    //myUi->setUIEventHandler(getEngine());
-
     Config* cfg = getEngine()->getSystemManager()->getAppConfig();
 
     //myLocalEventsEnabled = cfg->getBoolValue("config/ui/enableLocalEvents", true);
     myLocalEventsEnabled = true;
-
-    //if(cfg->exists("config/ui/images"))
-    //{
-    //	const Setting& stImages = cfg->lookup("config/ui/images");
-    //	initImages(stImages);
-    //}
     
     bool wandPointerSwitcher = false;
 
@@ -119,13 +109,13 @@ void UiModule::initialize()
         sm->addService(WandPointerSwitcher::New());
     }
 
-    omsg("UiModule initialization OK");
+    //omsg("UiModule initialization OK");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void UiModule::dispose()
 {
-    omsg("UiModule::dispose");
+    //omsg("UiModule::dispose");
 
     getEngine()->removeRenderPass("UiRenderPass");
 
@@ -137,7 +127,7 @@ void UiModule::dispose()
 ///////////////////////////////////////////////////////////////////////////////
 UiModule::~UiModule()
 {
-    omsg("~UiModule");
+    //omsg("~UiModule");
     mysInstance = NULL;
 }
 
@@ -160,19 +150,29 @@ void UiModule::update(const UpdateContext& context)
     Vector2f sz(vp.width(), vp.height());
 
     // Update the root container size if necessary.
-    if((myUi->getPosition().cwiseNotEqual(vp.min.cast<omicron::real>())).any() ||
-        myUi->getSize().cwiseNotEqual(sz).any())
+    if(myUi->getSize().cwiseNotEqual(sz).any())
     {
         //myUi->setPosition(vp.min.cast<omicron::real>());
-        myUi->setPosition(Vector2f::Ones());
-        myUi->setSize(Vector2f(vp.width() - 2, vp.height() - 2));
+        myUi->setPosition(Vector2f::Zero());
+        myUi->setSize(Vector2f(vp.width(), vp.height()));
     }
 
     // Make sure all widget sizes are up to date (and perform autosize where necessary).
-    myUi->updateSize();
+    foreach(ui::Widget* w, myWidgetsToRefresh)
+    {
+        w->updateSize();
+    }
+    //myUi->updateSize();
+
+    foreach(ui::Widget* w, myWidgetsToRefresh)
+    {
+        w->layout();
+    }
+
+    myWidgetsToRefresh.clear();
 
     // Layout ui.
-    myUi->layout();
+    //myUi->layout();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -183,6 +183,8 @@ void UiModule::handleEvent(const Event& evt)
     {
         myActiveWidget->handleEvent(evt);
     }
+    // Line introduced in svn rev1556 (Apr 2, 2012)
+    // (https://code.google.com/p/omegalib/source/diff?spec=svn1556&r=1556&format=side&path=/trunk/src/omegaToolkit/omegaToolkit/UiModule.cpp)
     if(!evt.isProcessed())
     {
         myUi->handleEvent(evt);

@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -33,6 +33,7 @@
  *	The omegalib entry point (omain), initialization and shutdown code, plus a
  *	set of system utility functions.
  ******************************************************************************/
+#include "version.h"
 #include "omega/osystem.h"
 #include "omega/ApplicationBase.h"
 #include "omega/SystemManager.h"
@@ -40,6 +41,7 @@
 #include "omega/Engine.h"
 #include "omicron/StringUtils.h"
 #include "omega/MissionControl.h"
+#include "omega/Platform.h"
 
 #include <iostream>
 
@@ -69,24 +71,32 @@ namespace omega
 {
     ///////////////////////////////////////////////////////////////////////////
     libconfig::ArgumentHelper sArgs;
-    GLEWContext* sGlewContext;
-
+    Vector<String> sOptionalArgs;
+    
     ///////////////////////////////////////////////////////////////////////////
-    GLEWContext* glewGetContext()
+    class LeakPrinter: public ReferenceType
     {
-        return sGlewContext;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    void glewSetContext(const GLEWContext* context)
-    {
-        sGlewContext = (GLEWContext*)context;
-    }
+    public:
+        void print()
+        {
+            if(mysObjList.size() > 1)
+            {
+                omsg("===================== ReferenceType object leaks follow:");
+                printObjCounts();
+            }
+        }
+    };
 
     ///////////////////////////////////////////////////////////////////////////
     OMEGA_API libconfig::ArgumentHelper& oargs()
     {
         return sArgs;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    OMEGA_API const Vector<String>& oxargv()
+    {
+        return sOptionalArgs;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -110,6 +120,7 @@ namespace omega
         }
 
         ds->killCluster();
+        SystemManager::instance()->cleanup();
         
         osleep(2000);
     }
@@ -211,22 +222,23 @@ namespace omega
             String dataPath = OMEGA_HOME;
             char* omegaHome = getenv("OMEGA_HOME");
             if(omegaHome != NULL) dataPath = omegaHome;
-            String logFilename = ostr("%1%.log", %app.getName());
+            String logFilename; 
 
             bool kill = false;
             bool help = false;
             bool disableSIGINTHandler = false;
             bool logRemoteNodes = false;
 
-            oargs().newOptionalString(
-                "config", 
-                "same as -c [config]",
-                configFilename);
+            oargs().setStringVector(
+                "args", 
+                "optional arguments. If the first argument ends with .cfg it will be used as a configuration file",
+                sOptionalArgs);
 
             sArgs.newNamedString(
                 'c',
                 "config", 
-                ostr("configuration file to use with this application (default: %1% or default.cfg if the previous is not found)", %configFilename).c_str(), "",
+                "<config file>",
+                "configuration file to use with this application.",
                 configFilename);
 
             sArgs.newFlag(
@@ -256,7 +268,7 @@ namespace omega
             sArgs.newNamedString(
                 'L',
                 "log",
-                ostr("log file to use with this application (default: %1%)", %logFilename).c_str(), "",
+                "log file to use with this application, OR [v|d] to enable verbose or debug log level. When log file is specified, log level is always set to debug", "",
                 logFilename);
 
             sArgs.newNamedString(
@@ -334,6 +346,27 @@ namespace omega
                 sArgs.writeUsage(std::cout);
                 return 0;
             }
+            
+            // Set log level and/or log filename
+            if(logFilename == "v")
+            {
+                StringUtils::logLevel = StringUtils::Verbose;
+                logFilename = ostr("%1%.log", %app.getName());        
+            } 
+            else if(logFilename == "d")
+            {
+                StringUtils::logLevel = StringUtils::Debug;
+                logFilename = ostr("%1%.log", %app.getName());        
+            } 
+            else if(logFilename == "")
+            {
+                logFilename = ostr("%1%.log", %app.getName());        
+            }
+            else
+            {
+                // A log filename was entered, always set log level to debug.
+                StringUtils::logLevel = StringUtils::Debug;
+            }
 
             std::vector<std::string> args = StringUtils::split(configFilename, "@");
             configFilename = args[0];
@@ -363,9 +396,9 @@ namespace omega
             SystemManager* sys = SystemManager::instance();
             DataManager* dm = sys->getDataManager();
             
-            omsg("omegalib data search paths:");
+            olog(Verbose, "omegalib data search paths:");
             String cwd = ogetcwd();
-            ofmsg("::: %1%", %cwd);
+            oflog(Verbose, "::: %1%", %cwd);
 
             // Add some default filesystem search paths: 
             // - an empty search path for absolute paths
@@ -381,20 +414,20 @@ namespace omega
             // instances during cluster startup)
             osetdataprefix(dataPath);
             
-            ofmsg("::: %1%", %dataPath);
-            omsg("omegalib application config lookup:");
+            oflog(Verbose, "::: %1%", %dataPath);
+            olog(Verbose, "omegalib application config lookup:");
             String curCfgFilename = ostr("%1%/%2%", %app.getName() %configFilename);
-            ofmsg("::: trying %1%", %curCfgFilename);
+            oflog(Verbose, "::: trying %1%", %curCfgFilename);
             String path;
             if(!DataManager::findFile(curCfgFilename, path))
             {
                 curCfgFilename = configFilename;
-                ofmsg("::: not found, trying %1%", %curCfgFilename);
+                oflog(Verbose, "::: not found, trying %1%", %curCfgFilename);
 
                 if(!DataManager::findFile(curCfgFilename, path))
                 {
                     curCfgFilename = "default.cfg";
-                    ofmsg("::: not found, trying %1%", %curCfgFilename);
+                    oflog(Verbose, "::: not found, trying %1%", %curCfgFilename);
                     if(!DataManager::findFile(curCfgFilename, path))
                     {
                         oerror("FATAL: Could not load default.cfg. Application will exit now.");
@@ -403,9 +436,22 @@ namespace omega
                 }
             }
 
-            ofmsg("::: found config: %1%", %curCfgFilename);
+            oflog(Verbose, "::: found config: %1%", %curCfgFilename);
 
             Config* cfg = new Config(curCfgFilename);
+            cfg->load();
+
+            // If we have an auxiliary config file specified,
+            // load it and append it to the main config.
+            if(sOptionalArgs.size() > 0 && 
+                StringUtils::endsWith(sOptionalArgs[0], ".cfg"))
+            {
+                oflog(Verbose, "Loading auxiliary config %1%", %sOptionalArgs[0]);
+                Config* auxcfg = new Config(sOptionalArgs[0]);
+                auxcfg->load();
+                cfg->append(auxcfg);
+                delete auxcfg;
+            }
 
             // Set the current working dir to the configuration dir
             // so we can load local files from there during setup if needed
@@ -432,7 +478,7 @@ namespace omega
             }
             else
             {
-                omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> OMEGALIB BOOT");
+                //omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> OMEGALIB BOOT");
                 sys->setApplication(&app);
                 if(remote)
                 {
@@ -449,16 +495,16 @@ namespace omega
 
                 sys->initialize();
 
-                omsg("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< OMEGALIB BOOT\n\n");
+                //omsg("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< OMEGALIB BOOT\n\n");
 
                 sys->run();
 
-                omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> OMEGALIB SHUTDOWN");
+                //omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> OMEGALIB SHUTDOWN");
                 sys->cleanup();
-                omsg("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< OMEGALIB SHUTDOWN\n\n");
+                //omsg("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< OMEGALIB SHUTDOWN\n\n");
 
-                omsg("===================== ReferenceType object leaks follow:");
-                ReferenceType::printObjCounts();
+               Ref<LeakPrinter> lp = new LeakPrinter();
+                lp->print();
             }
 
             ologclose();
@@ -476,6 +522,8 @@ namespace omega
     bool olaunch(const String& command)
     {
         if( command.empty( )) return false;
+        
+        olog(Verbose, "[olaunch] " + command);
 
 #ifdef OMEGA_OS_WIN
         STARTUPINFO         startupInfo;

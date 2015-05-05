@@ -1,11 +1,11 @@
 /**************************************************************************************************
  * THE OMEGA LIB PROJECT
  *-------------------------------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright 2010-2015		Electronic Visualization Laboratory, University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-------------------------------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory, University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted 
  * provided that the following conditions are met:
@@ -76,6 +76,18 @@ inline bool _oglError(const char* file, int line)
 }
 
 #define oglError _oglError(__FILE__, __LINE__)
+
+struct GLEWContextStruct;
+typedef struct GLEWContextStruct GLEWContext;
+///////////////////////////////////////////////////////////////////////////
+//! Glew
+//@{
+//! @internal gets a glew context for the current thread, if present.
+OMEGA_API GLEWContext* glewGetContext();
+//! @internal sets a glew context for the current thread.
+OMEGA_API void glewSetContext(const GLEWContext* context);
+//@}
+
 
 #endif
 #endif

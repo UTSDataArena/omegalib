@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2014		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2014, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -56,6 +56,9 @@ using namespace std;
 #define L(line) indent + line + "\n"
 #define START_BLOCK(string, name) string += indent + name + "\n" + indent + "{\n"; indent += "\t";
 #define END_BLOCK(string) indent = indent.substr(0, indent.length() - 1); string += indent + "}\n";
+
+// for getenv(), used to read the DISPLAY env variable
+#include <stdlib.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 void exitConfig()
@@ -114,20 +117,25 @@ void EqualizerDisplaySystem::generateEqConfig()
     // multiple shared data messages sent to slave nodes before they initialize their local objects
     result += L(ostr("latency %1%", %eqcfg.latency));
 
-    ofmsg("number of nodes: %1%", %eqcfg.numNodes);
+    // Get the display port for the DISPLAY env variable, if present.
+    int displayPort = 0;
+    char* DISPLAY = getenv("DISPLAY");
+    if(DISPLAY != NULL)
+    {
+        // given a variable like "blah.com:X.Y" we want to get X.
+        Vector<String> a1 = StringUtils::split(DISPLAY, ":");
+        Vector<String> a2 = StringUtils::split(a1[0], ".");
+        displayPort = boost::lexical_cast<int>(a2[0]);
+    }
 
     for(int n = 0; n < eqcfg.numNodes; n++)
     {
         DisplayNodeConfig& nc = eqcfg.nodes[n];
         // If all tiles are disabled for this node, skip it.
         if(!nc.enabled) continue;
-        // moved tile disabled check for remote (ie non-local) nodes
-        // because we want the port number to be used in the local node
-        // [Darren 6Jun14]
 
         if(nc.isRemote)
         {
-
             int port = eqcfg.basePort + nc.port;
             START_BLOCK(result, "node");
             START_BLOCK(result, "connection");
@@ -171,7 +179,14 @@ void EqualizerDisplaySystem::generateEqConfig()
                 winY = tc.position[1] + eqcfg.windowOffset[1];
             
                 String tileName = tc.name;
-                String tileCfg = buildTileConfig(indent, tileName, winX, winY, tc.pixelSize[0], tc.pixelSize[1], tc.device, curDevice, eqcfg.fullscreen, tc.borderless, tc.offscreen, tc.xDisplay);
+                String tileCfg = buildTileConfig(
+                    indent, 
+                    tileName, 
+                    winX, winY, 
+                    tc.pixelSize[0], tc.pixelSize[1], 
+                    displayPort, tc.device, curDevice, 
+                    eqcfg.fullscreen, tc.borderless, tc.offscreen);
+
                 result += tileCfg;
 
                 curDevice = tc.device;
@@ -257,7 +272,7 @@ void EqualizerDisplaySystem::generateEqConfig()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-String EqualizerDisplaySystem::buildTileConfig(String& indent, const String tileName, int x, int y, int width, int height, int device, int curdevice, bool fullscreen, bool borderless, bool offscreen, int xDisplay)
+String EqualizerDisplaySystem::buildTileConfig(String& indent, const String tileName, int x, int y, int width, int height, int port, int device, int curdevice, bool fullscreen, bool borderless, bool offscreen)
 {
     String viewport = ostr("viewport [%1% %2% %3% %4%]", %x %y %width %height);
 
@@ -276,7 +291,7 @@ String EqualizerDisplaySystem::buildTileConfig(String& indent, const String tile
         START_BLOCK(tileCfg, "pipe");
             tileCfg +=
                 L(ostr("name = \"%1%-%2%\"", %tileName %device)) +
-                L(ostr("port = %1%", %xDisplay)) +
+                L(ostr("port = %1%", %port)) +
                 L(ostr("device = %1%", %device));
     }
     START_BLOCK(tileCfg, "window");
@@ -396,7 +411,8 @@ void EqualizerDisplaySystem::initialize(SystemManager* sys)
 ///////////////////////////////////////////////////////////////////////////////
 void EqualizerDisplaySystem::killCluster() 
 {
-    omsg("EqualizerDisplaySystem::killCluster");
+    olog(Verbose, "EqualizerDisplaySystem::killCluster");
+    
     // Get process name from application executable.
     String execname = SystemManager::instance()->getApplication()->getExecutableName();
     String procName;
@@ -429,7 +445,7 @@ void EqualizerDisplaySystem::finishInitialize(ConfigImpl* config, Engine* engine
 {
     myConfig = config;
     // Setup cameras for each tile.
-    typedef KeyValue<String, DisplayTileConfig*> TileItem;
+    typedef KeyValue<String, Ref<DisplayTileConfig> > TileItem;
     foreach(TileItem dtc, myDisplayConfig.tiles)
     {
         if(dtc->cameraName == "")
@@ -458,22 +474,23 @@ void EqualizerDisplaySystem::run()
     int numArgs = 0;
     setupEqInitArgs(numArgs, (const char**)argv);
     myNodeFactory = new EqualizerNodeFactory();
-    omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DISPLAY INITIALIZATION");
+    olog(Verbose, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DISPLAY INITIALIZATION");
     if( !eq::init( numArgs, (char**)argv, myNodeFactory ))
     {
         oerror("Equalizer init failed");
     }
-    
+        
     myConfig = static_cast<ConfigImpl*>(eq::getConfig( numArgs, (char**)argv ));
+    omsg("Equalizer display system initializing");
     
     // If this is the master node, run the master loop.
     if(myConfig && mySys->isMaster())
     {
-        //omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DISPLAY INITIALIZATION");
+        //olog(Verbose, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DISPLAY INITIALIZATION");
         if( myConfig->init())
         {
-            omsg("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DISPLAY INITIALIZATION\n\n");
-            omsg(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> APPLICATION LOOP");
+            olog(Verbose, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DISPLAY INITIALIZATION\n\n");
+            olog(Verbose, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> APPLICATION LOOP");
 
             uint32_t spin = 0;
             bool exitRequestProcessed = false;
@@ -493,7 +510,7 @@ void EqualizerDisplaySystem::run()
                     myConfig->finishAllFrames();
                 }
             }
-            omsg("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< APPLICATION LOOP\n\n");
+            olog(Verbose, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< APPLICATION LOOP\n\n");
         }
         else
         {

@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -35,6 +35,24 @@
 #include "omegaConfig.h"
 
 #include <omicron.h>
+
+///////////////////////////////////////////////////////////////////////////////
+// WIN32 Platform-specific includes & macros.
+#ifdef WIN32
+    #define WIN32_LEAN_AND_MEAN
+    // Omega DLL import / export macros
+    #ifndef OMEGA_STATIC
+        #ifdef OMEGA_EXPORTING
+           #define OMEGA_API    __declspec(dllexport)
+        #else
+           #define OMEGA_API    __declspec(dllimport)
+        #endif
+    #else
+        #define OMEGA_API
+    #endif
+#else
+    #define OMEGA_API
+#endif
 
 // Forward declarations of some OpenGL and OpenCL types.
 // Using these, we can avoid including gl, cl (and windows) headers for every 

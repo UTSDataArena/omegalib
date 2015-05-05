@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -53,7 +53,6 @@ namespace omega {
 	public:
 		NodeComponent(): myNeedBoundingBoxUpdate(false), myOwner(NULL) {}
 		virtual void update(const UpdateContext& context) = 0;
-		virtual void draw(const DrawContext& context) {};
 		virtual const AlignedBox3* getBoundingBox() { return NULL; }
 		virtual bool hasBoundingBox() { return false; }
 		virtual bool isInitialized() = 0;

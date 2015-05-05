@@ -1,11 +1,11 @@
 /**************************************************************************************************
  * THE OMEGA LIB PROJECT
  *-------------------------------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright 2010-2015		Electronic Visualization Laboratory, University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-------------------------------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory, University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted 
  * provided that the following conditions are met:
@@ -71,7 +71,7 @@ void EventSharingModule::share(const Event& evt)
 			{
                 if(!sEventDropNotified)
                 {
-                    ofwarn("EventSharingModule::share: cannot queue more than %1% events. Dropping event.", %((int)MaxSharedEventsQueue));
+                    //ofwarn("EventSharingModule::share: cannot queue more than %1% events. Dropping event.", %((int)MaxSharedEventsQueue));
                     sEventDropNotified = true;
                 }
 			}
@@ -134,6 +134,6 @@ void EventSharingModule::updateSharedData(SharedIStream& in)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void EventSharingModule::dispose()
 {
-	omsg("EventSharingModule::dispose");
+	//omsg("EventSharingModule::dispose");
 	mysInstance = NULL;
 }

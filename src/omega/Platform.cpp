@@ -1,12 +1,12 @@
 /******************************************************************************
 * THE OMEGA LIB PROJECT
 *-----------------------------------------------------------------------------
-* Copyright 2010-2014	Electronic Visualization Laboratory,
+* Copyright 2010-2015	Electronic Visualization Laboratory,
 *							University of Illinois at Chicago
 * Authors:
 *  Alessandro Febretti		febret@gmail.com
 *-----------------------------------------------------------------------------
-* Copyright (c) 2010-2014, Electronic Visualization Laboratory,
+* Copyright (c) 2010-2015, Electronic Visualization Laboratory,
 * University of Illinois at Chicago
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without modification,
@@ -40,6 +40,7 @@
 using namespace omega;
 
 float Platform::scale = 1.0f;
+bool Platform::deprecationWarnings = true;
 Dictionary<String, bool> Platform::myFlags;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,6 +56,7 @@ void Platform::setup(const Setting& s)
     }
 
     scale = Config::getFloatValue("scale", s, 1.0f);
+    deprecationWarnings = Config::getBoolValue("deprecationWarnings", s, true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

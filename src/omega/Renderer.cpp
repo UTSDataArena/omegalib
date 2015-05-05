@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -75,7 +75,7 @@ bool RenderPassSortOp(RenderPass* p1, RenderPass* r2)
 void Renderer::addRenderPass(RenderPass* pass)
 {
     myRenderPassLock.lock();
-    ofmsg("Renderer(%1%): adding render pass %2%", %getGpuContext()->getId() %pass->getName());
+    //ofmsg("Renderer(%1%): adding render pass %2%", %getGpuContext()->getId() %pass->getName());
     myRenderPassList.push_back(pass);
     // Re-sort the render pass list. Render passes implement a comparison 
     // operator to perform the sorting based on their priority.
@@ -112,7 +112,7 @@ RenderPass* Renderer::getRenderPass(const String& name)
 ///////////////////////////////////////////////////////////////////////////////
 void Renderer::initialize()
 {
-    ofmsg("@Renderer::Initialize: id = %1%", %getGpuContext()->getId());
+    //ofmsg("@Renderer::Initialize: id = %1%", %getGpuContext()->getId());
 
     // Create the default font.
     const FontInfo& fi = myServer->getDefaultFont();
@@ -127,6 +127,20 @@ void Renderer::initialize()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void Renderer::dispose()
+{
+    foreach(GpuResource* res, myResources) res->dispose();
+    myResources.clear();
+
+    foreach(RenderPass* rp, myRenderPassList) rp->dispose();
+    myRenderPassList.clear();
+
+    while(!myRenderableCommands.empty()) myRenderableCommands.pop();
+
+    myRenderer = NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void Renderer::queueCommand(IRendererCommand* cmd)
 {
     myRenderCommandLock.lock();
@@ -137,21 +151,25 @@ void Renderer::queueCommand(IRendererCommand* cmd)
 ///////////////////////////////////////////////////////////////////////////////
 void Renderer::startFrame(const FrameInfo& frame)
 {
+    //omsg("Renderer::startFrame");
+
     myFrameTimeStat->startTiming();
     myServer->getDefaultCamera()->startFrame(frame);
     foreach(Ref<Camera> cam, myServer->getCameras())
     {
-        cam->startFrame(frame);
+        if(cam->isEnabled()) cam->startFrame(frame);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Renderer::finishFrame(const FrameInfo& frame)
 {
+    //omsg("Renderer::finishFrame");
+
     myServer->getDefaultCamera()->finishFrame(frame);
     foreach(Ref<Camera> cam, myServer->getCameras())
     {
-        cam->finishFrame(frame);
+        if(cam->isEnabled()) cam->finishFrame(frame);
     }
 
     bool shuttingDown = SystemManager::instance()->isExitRequested();
@@ -173,16 +191,29 @@ void Renderer::finishFrame(const FrameInfo& frame)
 ///////////////////////////////////////////////////////////////////////////////
 void Renderer::clear(DrawContext& context)
 {
+    //omsg("Renderer::clear");
+
     myServer->getDefaultCamera()->clear(context);
     foreach(Ref<Camera> cam, myServer->getCameras())
     {
-        cam->clear(context);
+        if(cam->isEnabled()) cam->clear(context);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void Renderer::prepare(DrawContext& context)
+{
+    foreach(RenderPass* rp, myRenderPassList)
+    {
+        rp->prepare(this, context);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Renderer::draw(DrawContext& context)
 {
+    //omsg("Renderer::draw");
+
     myRenderPassLock.lock();
     // First of all make sure all render passes are initialized.
     foreach(RenderPass* rp, myRenderPassList)
@@ -240,24 +271,7 @@ void Renderer::draw(DrawContext& context)
 ///////////////////////////////////////////////////////////////////////////////
 void Renderer::innerDraw(const DrawContext& context, Camera* cam)
 {
-    // NOTE: Scene.draw traversal only runs for cameras that do not have a mask specified
-    if(cam->getMask() == 0 && context.task == DrawContext::SceneDrawTask)
-    {
-        getRenderer()->beginDraw3D(context);
-
-        // Run the draw method on scene nodes (was previously in DefaultRenderPass)
-        // This will traverse the scene graph and invoke the draw method on all scene objects attached to nodes.
-        // When stereo rendering, the traversal will happen once per eye.
-        SceneNode* node = getEngine()->getScene();
-        node->draw(context);
-
-        // Draw 3d pointers.
-        // We call drawPointers for scene draw tasks too because we may be drawing pointers in wand mode 
-        //myServer->drawPointers(this, &state);
-
-        getRenderer()->endDraw();
-    }
-
+    //omsg("[DRAW]");
     myRenderPassLock.lock();
     // Execute all render passes in order. 
     foreach(RenderPass* pass, myRenderPassList)

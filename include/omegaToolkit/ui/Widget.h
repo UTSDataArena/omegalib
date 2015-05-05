@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -36,16 +36,14 @@
 #define __WIDGET_H__
 
 #include "omega/osystem.h"
-#include "omicron/fast_mutex.h"
 #include "omegaToolkit/omegaToolkitConfig.h"
 #include "omega/DrawInterface.h"
 #include "omega/Renderable.h"
 
 // Needed to support python callbacks
-#ifndef BOOST_PYTHON_SOURCE
-#define BOOST_PYTHON_NO_LIB
-#endif
-#include <boost/python.hpp>
+// NOTE: don't move this header before others. omegalib will explode on exit
+// on OSX with an Illegal Instruction: 4 error.
+#include "omega/PythonInterpreterWrapper.h"
 
 namespace omegaToolkit { 
     class UiScriptCommand;
@@ -99,6 +97,26 @@ namespace omegaToolkit {
         //! Returns true if the event is a button up event happening
         //! on this widget
         bool isButtonUp(const Event& evt, Event::Flags button);
+        //! Sets or gets a script command to be invoked on every update for this
+        //! widget
+        void setUpdateCommand(const String& cmd) { myUpdateCommand = cmd; }
+        String getUpdateCommand() { return myUpdateCommand; }
+        //! Sets or gets a script command to be invoked when this widget starts
+        //! dragging
+        void setDragBeginCommand(const String& cmd) { myDragBeginCommand = cmd; }
+        String getDragBeginCommand() { return myDragBeginCommand; }
+        //! Sets or gets a script command to be invoked when this widget ends
+        //! dragging
+        void setDragEndCommand(const String& cmd) { myDragEndCommand = cmd; }
+        String getDragEndCommand() { return myDragEndCommand; }
+        //! Sets or gets a script command to be invoked when this widget gets
+        //! active status
+        void setActivateCommand(const String& cmd) { myActivateCommand = cmd; }
+        String getActivateCommand() { return myActivateCommand; }
+        //! Sets or gets a script command to be invoked when this widget loses
+        //! active status
+        void setDeactivateCommand(const String& cmd) { myDeactivateCommand = cmd; }
+        String getDeactivateCommand() { return myDeactivateCommand; }
         //@}
 
         //! Returns the widget name.
@@ -108,8 +126,11 @@ namespace omegaToolkit {
 
         //! Position and rotation
         //@{
-        //! Gets the widget position.
+        //! Gets the widget position relative to its container
         const Vector2f& getPosition() { return myPosition; }
+        //! Gets the widget position in screen space.
+        Vector2f getDerivedPosition();
+
         //! Sets the widget position
         void setPosition(const omega::Vector2f& value);
         void setPosition(int value, int dimension);
@@ -203,11 +224,16 @@ namespace omegaToolkit {
         void setInactiveStyle(const String& value) { myInactiveStyle = value; setStyle(value); }
         String getActiveStyle() { return myActiveStyle; }
         String getInactiveStyle() { return myInactiveStyle; }
+
         //! Sets the widget scale. Scale controls the visual appearance of a 
         //! widget without changing its actual size or forcing a layout refresh 
         //! of the widget container. Scale is indicated as a proportion of the
         //! current widget size.
         float getScale() { return myScale; }
+        //! Gets the scale of this widget, taking into account the scale of any
+        //! parent container.
+        float getDerivedScale();
+
         void setAlpha(float value) { myAlpha = value; }
         float getAlpha();
         void setBlendMode(BlendMode value) { myBlendMode = value; }
@@ -243,9 +269,6 @@ namespace omegaToolkit {
         bool hitTest(const Vector2f& point);
         //! Transforms a 2D point from screen space to this widget's reference frame.
         Vector2f transformPoint(const omega::Vector2f& point);
-
-        void setUpdateCommand(const String& cmd) { myUpdateCommand = cmd; }
-        String getUpdateCommand() { return myUpdateCommand; }
 
         template<typename W> static W* getSource(const Event& evt);
 
@@ -401,6 +424,10 @@ namespace omegaToolkit {
         String myShaderName;
 
         String myUpdateCommand;
+        String myDragBeginCommand;
+        String myDragEndCommand;
+        String myActivateCommand;
+        String myDeactivateCommand;
 
         BorderStyle myBorders[4];
 
@@ -409,7 +436,7 @@ namespace omegaToolkit {
         PyObject* myPostDrawCallback;
 
         static Dictionary<int, ui::Widget*> mysWidgets;
-        static fast_mutex mysWidgetsMutex;  //mutex for Dictionary above
+        static Lock mysWidgetsMutex;  //mutex for Dictionary above
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -601,26 +628,6 @@ namespace omegaToolkit {
     ///////////////////////////////////////////////////////////////////////////
     inline void Widget::setVisible(bool value) 
     { myVisible = value; }
-
-    ///////////////////////////////////////////////////////////////////////////
-    inline void Widget::setActive(bool value) 
-    {
-        myActive = value; 
-        //if(myActive != value)
-        {
-            if(value)
-            {
-                activate();
-                if(myActiveStyle.size() > 0) setStyle(myActiveStyle);
-            }
-            else
-            {
-                deactivate();
-                if(myInactiveStyle.size() > 0) setStyle(myInactiveStyle);
-            }
-        }
-        //ofmsg("Widget %1% active: %2%", %myId %value);
-    } 
 
     ///////////////////////////////////////////////////////////////////////////
     inline void Widget::setPosition(const omega::Vector2f& value) 

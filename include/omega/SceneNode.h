@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -86,8 +86,6 @@ namespace omega {
     public:
         SceneNode(Engine* server):
             myServer(server),
-            myBoundingBoxColor(1, 1, 1, 1),
-            myBoundingBoxVisible(false),
             mySelectable(false),
             myChanged(false),
             myVisible(true),
@@ -96,14 +94,13 @@ namespace omega {
             myTracker(NULL),
             myNeedsBoundingBoxUpdate(false),
             myFacingCameraFixedY(false),
-            myFlags(0)
+            myFlags(0),
+            myCurrentUpdateContext(NULL)
             {}
 
         SceneNode(Engine* server, const String& name):
             Node(name),
             myServer(server),
-            myBoundingBoxColor(1, 1, 1, 1),
-            myBoundingBoxVisible(false),
             mySelectable(false),
             myChanged(false),
             myVisible(true),
@@ -112,7 +109,8 @@ namespace omega {
             myTracker(NULL),
             myNeedsBoundingBoxUpdate(false),
             myFacingCameraFixedY(false),
-            myFlags(0)
+            myFlags(0),
+            myCurrentUpdateContext(NULL)
             {}
 
         Engine* getEngine();
@@ -145,10 +143,6 @@ namespace omega {
         //@{
         const AlignedBox3& getBoundingBox();
         const Sphere& getBoundingSphere();
-        bool isBoundingBoxVisible();
-        void setBoundingBoxVisible(bool value);
-        const Color& getBoundingBoxColor();
-        void setBoundingBoxColor(const Color& color);
         const Vector3f& getBoundMinimum();
         const Vector3f& getBoundMaximum();
         const Vector3f getBoundCenter();
@@ -171,11 +165,7 @@ namespace omega {
         void update(const UpdateContext& context);
         //! @internal Updates all transforms from this node down in the hierarchy.
         virtual void update(bool updateChildren, bool parentHasChanged);
-        //! @internal Updates all node components from this node down in the hierarchy.
-        virtual void updateComponents(const UpdateContext& context);
         virtual void needUpdate(bool forceParentUpdate = true);
-
-        void draw(const DrawContext& context);
 
         void setTag(const String& value) { myTag = value; }
         const String& getTag() { return myTag; } 
@@ -214,7 +204,6 @@ namespace omega {
         void onDetachedFromScene();
     
     private:
-        void drawBoundingBox();
         void updateBoundingBox(bool force = false);
         bool needsBoundingBoxUpdate();
 
@@ -236,10 +225,7 @@ namespace omega {
         String myTag;
         uint myFlags;
 
-        // Bounding box stuff.
-        bool myBoundingBoxVisible;
         bool myNeedsBoundingBoxUpdate;
-        Color myBoundingBoxColor;
 
         // Target camera for billboard mode. Can't use Ref due to circular dependency.
         Camera* myFacingCamera;
@@ -248,6 +234,8 @@ namespace omega {
         bool myFacingCameraFixedY;
         // Tracked object.
         TrackedObject* myTracker;
+        
+        const UpdateContext* myCurrentUpdateContext;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -265,22 +253,6 @@ namespace omega {
     ///////////////////////////////////////////////////////////////////////////
     inline bool SceneNode::needsBoundingBoxUpdate() 
     { return myNeedsBoundingBoxUpdate; }
-
-    ///////////////////////////////////////////////////////////////////////////
-    inline bool SceneNode::isBoundingBoxVisible() 
-    { return myBoundingBoxVisible; }
-
-    ///////////////////////////////////////////////////////////////////////////
-    inline void SceneNode::setBoundingBoxVisible(bool value) 
-    { myBoundingBoxVisible = value; }
-
-    ///////////////////////////////////////////////////////////////////////////
-    inline const Color& SceneNode::getBoundingBoxColor() 
-    { return myBoundingBoxColor; }
-
-    ///////////////////////////////////////////////////////////////////////////
-    inline void SceneNode::setBoundingBoxColor(const Color& color) 
-    { myBoundingBoxColor = color; }
 
     ///////////////////////////////////////////////////////////////////////////
     inline Engine* SceneNode::getEngine()

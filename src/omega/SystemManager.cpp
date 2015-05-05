@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without 
@@ -243,7 +243,7 @@ void SystemManager::setupConfig(Config* appcfg)
             if(defaultCfg->load())
             {
                 String systemCfgName = (const char*)defaultCfg->lookup("config/systemConfig");
-                ofmsg("Default system configuration file: %1%", %systemCfgName);
+                oflog(Verbose, "Default system configuration file: %1%", %systemCfgName);
                 mySystemConfig = new Config(systemCfgName);
             }
             else
@@ -253,7 +253,7 @@ void SystemManager::setupConfig(Config* appcfg)
         }
         else
         {
-            ofmsg("SystemManager::setup: systemConfig = %1%", %systemCfgName);
+            oflog(Verbose, "SystemManager::setup: systemConfig = %1%", %systemCfgName);
             mySystemConfig = new Config(systemCfgName);
         }
     }
@@ -357,7 +357,7 @@ void SystemManager::setupDisplaySystem()
         String displaySystemType = "Null";
         stDS.lookupValue("type", displaySystemType);
         
-        ofmsg("SystemManager::setupDisplaySystem: type = %1%", %displaySystemType);
+        oflog(Verbose, "SystemManager::setupDisplaySystem: type = %1%", %displaySystemType);
         
         if(displaySystemType == "Equalizer")
         {
@@ -412,14 +412,16 @@ void SystemManager::setupMissionControl(const String& mode)
     int port = MissionControlServer::DefaultPort;
     String host = "127.0.0.1";
     bool serverEnabled = false;
+    bool clientEnabled = false;
 
     // Read config from file.
-    if(mySystemConfig->exists("config/missionControl"))
+    if(settingExists("config/missionControl"))
     {
-        Setting& s = mySystemConfig->lookup("config/missionControl");
+        Setting& s = settingLookup("config/missionControl");
         port = Config::getIntValue("port", s, port);
         host = Config::getStringValue("host", s, host);
         serverEnabled = Config::getBoolValue("serverEnabled", s, serverEnabled);
+        clientEnabled = Config::getBoolValue("clientEnabled", s, clientEnabled);
     }
 
     // If mode is default and server is enabled in the configuration, or
@@ -463,7 +465,7 @@ void SystemManager::setupMissionControl(const String& mode)
     }
     // If mode is client, start a client and connect to a server using host and
     // port from the configuration file. By default connects to a local server.
-    else if(mode == "client")
+    else if(mode == "client" || clientEnabled)
     {
         omsg("Initializing mission control client...");
         myMissionControlClient = MissionControlClient::create();
@@ -582,12 +584,13 @@ void SystemManager::cleanup()
         myServiceManager->dispose();
     }
 
-    // Cleanup the interpreter state. All interpreter objects will be 
-    // deallocated. The engine state will be reset. We need to do this before
-    // Shutting down the display system to avoid deallocation conflicts.
+    // Dispose the interpreter. All interpreter objects will be 
+    // deallocated. The engine state will be reset.
     if(myInterpreter != NULL) 
     {
         myInterpreter->clean();
+        delete myInterpreter;
+        myInterpreter = NULL;        
     }
 
     // Shutdown the display system. This will also shutdown and dispose the
@@ -599,13 +602,7 @@ void SystemManager::cleanup()
         myDisplaySystem = NULL;
     }
 
-    // Dispose the interpreter. Everything should have been cleaned up at this 
-    // point. So this just finalizes and releases the python interpreter.
-    if(myInterpreter != NULL) 
-    {
-        delete myInterpreter;
-        myInterpreter = NULL;
-    }
+    myDataManager->cleanup();
 
     // Dispose myself.
     delete mysInstance;

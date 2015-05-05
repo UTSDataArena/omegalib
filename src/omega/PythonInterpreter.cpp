@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -64,6 +64,14 @@ void omegaPythonApiInit();
 
 //PyThreadState* sMainThreadState;
 
+// Defined in PythonShellWrapper.cpp
+class PythonInterpreterWrapper;
+PythonInterpreterWrapper* wrapPythonShell(PythonInterpreter* interpretor, bool dumpToError);
+
+// Main python thread state, used for multithreading support.
+PyThreadState* sPythonMainThreadState = NULL;
+unsigned int sGILAquireCount = 0;
+
 ///////////////////////////////////////////////////////////////////////////////
 class PythonInteractiveThread: public Thread
 {
@@ -71,15 +79,15 @@ public:
     virtual void threadProc()
     {
         PythonInterpreter* interp = SystemManager::instance()->getScriptInterpreter();
+        String prompt = "";
 
         while(!SystemManager::instance()->isExitRequested())	
         {
-            osleep(100);
             String line;
 #ifdef OMEGA_READLINE_FOUND
-            String prompt = ostr("%1%>>", %SystemManager::instance()->getApplication()->getName());
             char *inp_c = readline(prompt.c_str()); //Instead of getline()
             
+            prompt = ostr("%1%>>", %SystemManager::instance()->getApplication()->getName());
             // THE COMMAND OF DEATH
             if(inp_c[0] == 'D' &&
                 inp_c[1] == 'I' &&
@@ -98,8 +106,9 @@ public:
             //ofmsg("line read: %1%", %line);
 
             interp->queueCommand(line);
+            osleep(100);
         }
-        omsg("Ending console interactive thread");
+        //omsg("Ending console interactive thread");
     }
 };
 
@@ -107,14 +116,37 @@ public:
 void PythonInterpreter::lockInterpreter()
 {
     if(myDebugShell) omsg("PythonInterpreter::lockInterpreter()");
-    myLock.lock();
+    //myLock.lock();
+
+    // Acquire GIL. If GIL is already aquired, increase aquire count, so we
+    // dont release prematurely.
+    if(sPythonMainThreadState)
+    {
+        PyEval_RestoreThread(sPythonMainThreadState);
+    }
+    sPythonMainThreadState = NULL;
+    sGILAquireCount++;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void PythonInterpreter::unlockInterpreter()
 {
+    // Release GIL
+    if(sGILAquireCount > 0)
+    {
+        sGILAquireCount--;
+        if(sGILAquireCount == 0)
+        {
+            sPythonMainThreadState = PyEval_SaveThread();
+        }
+    }
+    else
+    {
+        oerror("PythonInterpreter::unlockInterpreter: missing lockInterpreter call");
+    }
+
     if(myDebugShell) omsg("PythonInterpreter::unlockInterpreter()");
-    myLock.unlock();
+    //myLock.unlock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -122,6 +154,7 @@ bool PythonInterpreter::isEnabled()
 {
     return true;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 PythonInterpreter::PythonInterpreter()
@@ -134,10 +167,16 @@ PythonInterpreter::PythonInterpreter()
 ///////////////////////////////////////////////////////////////////////////////
 PythonInterpreter::~PythonInterpreter()
 {
-    omsg("~PythonInterpreter");
+    lockInterpreter();
+    //omsg("~PythonInterpreter");
     //myInteractiveThread->stop();
     delete myInteractiveThread;
     myInteractiveThread = NULL;
+
+#ifdef OMEGA_READLINE_FOUND
+    rl_free_line_state();
+    rl_cleanup_after_signal();
+#endif
 
     Py_Finalize();
 }
@@ -145,7 +184,7 @@ PythonInterpreter::~PythonInterpreter()
 ///////////////////////////////////////////////////////////////////////////////
 void PythonInterpreter::addPythonPath(const char* dir)
 {
-    ofmsg("PythonInterpreter::addPythonPath: %1%", %dir);
+    //ofmsg("PythonInterpreter::addPythonPath: %1%", %dir);
     
     // Convert slashes for this platform.
     String out_dir = dir ? dir : "";
@@ -173,7 +212,7 @@ void PythonInterpreter::setup(const Setting& setting)
     myInitScript = Config::getStringValue("initScript", setting, myInitScript);
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////
 void PythonInterpreter::initialize(const char* programName)
 {
     // Register self as shared object
@@ -183,6 +222,15 @@ void PythonInterpreter::initialize(const char* programName)
     // full path.
     Py_SetProgramName((char*)programName);
 
+    // KINDA HACK Check python location only on windows: on OSX/linux assume there
+    // is a system python install. This is mostly to make it possible to have a 
+    // cross platform build using the same source: if we try to run a linux version
+    // on a source used to build windows, there would be a python dir in modules,
+    // linux would try to use that and would fail because that python version is
+    // for windows. 
+    // NOTE: The best solution would be to extract python somewhere in the build
+    // tree and search there...
+#ifdef OMEGA_OS_WIN
     // Use the datamanager to lookup for a local copy of the python library:
     String pythonModulePath;
     if(DataManager::findFile("python/Lib/site.py", pythonModulePath))
@@ -200,12 +248,26 @@ void PythonInterpreter::initialize(const char* programName)
         owarn("WARNING: could not find a local omegalib python installation. \n"
               "Omegalib will attempt to use the system python interpreter (if available)");
     }
+#endif
 
     // initialize the statically linked modules
     //CMakeLoadAllPythonModules();
 
     // Initialize interpreter.
     Py_Initialize();
+    PyEval_InitThreads();
+    lockInterpreter();
+
+    // Pass the optional arguments to the interpreter
+    Vector<char*> argv;
+    foreach(const String& s, oxargv())
+    {
+        argv.push_back((char*)s.c_str());
+    }
+    if(argv.size() > 0)
+    {
+        PySys_SetArgv(argv.size(), argv.data());
+    }
 
     // HACK: Calling PyRun_SimpleString for the first time for some reason results in
     // a "\n" message being generated which is causing the error dialog to
@@ -214,11 +276,8 @@ void PythonInterpreter::initialize(const char* programName)
     // The cast is necessary because PyRun_SimpleString() hasn't always been
     // const-correct.
     PyRun_SimpleString(const_cast<char*>(""));
-    PythonInterpreterWrapper* wrapperOut = vtkWrapInterpretor(this);
-    wrapperOut->DumpToError = false;
-
-    PythonInterpreterWrapper* wrapperErr = vtkWrapInterpretor(this);
-    wrapperErr->DumpToError = false;
+    PythonInterpreterWrapper* wrapperOut = wrapPythonShell(this, false);
+    PythonInterpreterWrapper* wrapperErr = wrapPythonShell(this, false);
 
     // Redirect Python's stdout and stderr and stdin
     PySys_SetObject(const_cast<char*>("stdout"), reinterpret_cast<PyObject*>(wrapperOut));
@@ -256,7 +315,7 @@ void PythonInterpreter::initialize(const char* programName)
     if((myShellEnabled || SystemManager::instance()->getApplication()->interactive) 
         && SystemManager::instance()->isMaster())
     {
-        omsg("PythonInterpreter: starting interactive shell thread.");
+        //omsg("PythonInterpreter: starting interactive shell thread.");
         myInteractiveThread->start();
     }
 
@@ -273,7 +332,9 @@ void PythonInterpreter::initialize(const char* programName)
     // Setup stats
     StatsManager* sm = SystemManager::instance()->getStatsManager();
     myUpdateTimeStat = sm->createStat("Script update", StatsManager::Time);
-    omsg("Python Interpreter initialized.");
+    //omsg("Python Interpreter initialized.");
+    
+    unlockInterpreter();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -397,7 +458,9 @@ void PythonInterpreter::evalEventCommand(const String& command, const Event& evt
 ///////////////////////////////////////////////////////////////////////////////
 void PythonInterpreter::runFile(const String& filename, uint flags)
 {
-    ofmsg("PythonInterpreter::runFile: running %1%", %filename);
+    lockInterpreter();
+
+    ofmsg("Running %1%", %filename);
     // Substitute the OMEGA_DATA_ROOT and OMEGA_APP_ROOT macros in the path.
     String path = filename;
     
@@ -447,13 +510,13 @@ void PythonInterpreter::runFile(const String& filename, uint flags)
     {
         ofwarn("PythonInterpreter: script not found: %1%", %filename);
     }
+
+    unlockInterpreter();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void PythonInterpreter::clean()
 {
-    Engine::instance()->reset();
-
     // destroy all global variables
     if(myDebugShell)
     {
@@ -473,6 +536,13 @@ void PythonInterpreter::clean()
 
     // unregister callbacks
     unregisterAllCallbacks();
+    
+    // Reset the engine state. Do this after destroying interpreter variables
+    // to avoid deallocation conflicts.
+    if(Engine::instance() != NULL)
+    {
+        Engine::instance()->reset();
+    }
 
     // Clear all queued commands.
     //myInteractiveCommandLock.lock();
@@ -526,6 +596,8 @@ void PythonInterpreter::unregisterAllCallbacks()
 ///////////////////////////////////////////////////////////////////////////////
 void PythonInterpreter::update(const UpdateContext& context) 
 {
+    lockInterpreter();
+
     myUpdateTimeStat->startTiming();
     // Execute queued interactive commands first
     if(myCommandQueue.size() != 0)
@@ -568,6 +640,8 @@ void PythonInterpreter::update(const UpdateContext& context)
 
     Py_DECREF(arglist);
     myUpdateTimeStat->stopTiming();
+
+    unlockInterpreter();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

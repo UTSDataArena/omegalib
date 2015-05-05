@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -217,30 +217,6 @@ void SceneNode::removeComponent(NodeComponent* o)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void SceneNode::draw(const DrawContext& context)
-{
-    if(myVisible)
-    {
-        //if(myChanged) updateTransform();
-
-        if(myBoundingBoxVisible) drawBoundingBox();
-
-        // Draw drawables attached to this node.
-        foreach(NodeComponent* d, myObjects)
-        {
-            d->draw(context);
-        }
-
-        // Draw children nodes.
-        foreach(Node* child, getChildren())
-        {
-            SceneNode* n = dynamic_cast<SceneNode*>(child);
-            n->draw(context);
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
 void SceneNode::update(bool updateChildren, bool parentHasChanged)
 {
     // Short circuit the off case
@@ -250,25 +226,24 @@ void SceneNode::update(bool updateChildren, bool parentHasChanged)
     }
 
     Node::update(updateChildren, parentHasChanged);
+    
+    // This node transformation is now up to date. update the attached components.
+    foreach(NodeComponent* d, myObjects)
+    {
+        d->update(*myCurrentUpdateContext);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void SceneNode::update(const UpdateContext& context)
 {
-    // Step 1: traverse the scene graph and invoke update on all nodes.
-    // Nodes will have the chance to modify their own transform in this phase.
-    // For instance, nodes that have to face cameras update transforms in this
-    // step. User-defined updateTraversal methods for custom SceneNode classes
-    // may perform other operations in this step.
-    updateTraversal(context);
-
-    // Step 2: update all needed transforms in the node hierarchy
-    update(true, false);
-
-    // Step 3: update all node components. In this step, all nodes have 
-    // up-to-date transforms, so we can consistently update all attached node
-    // components
-    updateComponents(context);
+    // Save the current update context, so we can use it to update components
+    // on the update transforms call (see above)
+    myCurrentUpdateContext = &context;
+    // First update all nodes. This will call the update function on nodes to
+    // let them adjust their own transforms, the propagate results down the 
+    // hierarchy.
+    Node::update(context);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -286,27 +261,7 @@ void SceneNode::updateTraversal(const UpdateContext& context)
     }
 
     // Update children
-    foreach(Node* child, getChildren())
-    {
-        SceneNode* n = dynamic_cast<SceneNode*>(child);
-        if(n) n->updateTraversal(context);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void SceneNode::updateComponents(const UpdateContext& context)
-{
-    // Update attached components
-    foreach(NodeComponent* d, myObjects)
-    {
-        d->update(context);
-    }
-    // Update components of children nodes
-    foreach(Node* child, getChildren())
-    {
-        SceneNode* n = dynamic_cast<SceneNode*>(child);
-        if(n) n->updateComponents(context);
-    }
+    Node::updateTraversal(context);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -415,65 +370,7 @@ void SceneNode::updateBoundingBox(bool force)
         myBSphere = Sphere(myBBox.getCenter(), myBBox.getHalfSize().maxCoeff());
     }
 
-    //SceneNode* parent = dynamic_cast<SceneNode*>(getParent());
-    //if(parent != NULL)
-    //{
-    //	parent->updateBoundingBox(true);
-    //}
-
     myNeedsBoundingBoxUpdate = false;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void SceneNode::drawBoundingBox()
-{
-    updateBoundingBox();
-    glPushAttrib(GL_ENABLE_BIT);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_GREATER);
-    
-    glColor3fv(myBoundingBoxColor.data());
-    glBegin(GL_LINES);
-
-    glVertex3f(myBBox[0][0], myBBox[0][1], myBBox[0][2]);
-    glVertex3f(myBBox[1][0], myBBox[0][1], myBBox[0][2]);
-
-    glVertex3f(myBBox[0][0], myBBox[0][1], myBBox[0][2]);
-    glVertex3f(myBBox[0][0], myBBox[0][1], myBBox[1][2]);
-
-    glVertex3f(myBBox[0][0], myBBox[0][1], myBBox[0][2]);
-    glVertex3f(myBBox[0][0], myBBox[1][1], myBBox[0][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[1][1], myBBox[1][2]);
-    glVertex3f(myBBox[1][0], myBBox[0][1], myBBox[1][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[1][1], myBBox[1][2]);
-    glVertex3f(myBBox[1][0], myBBox[1][1], myBBox[0][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[1][1], myBBox[1][2]);
-    glVertex3f(myBBox[0][0], myBBox[1][1], myBBox[1][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[0][1], myBBox[1][2]);
-    glVertex3f(myBBox[0][0], myBBox[0][1], myBBox[1][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[0][1], myBBox[1][2]);
-    glVertex3f(myBBox[1][0], myBBox[0][1], myBBox[0][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[1][1], myBBox[0][2]);
-    glVertex3f(myBBox[0][0], myBBox[1][1], myBBox[0][2]);
-
-    glVertex3f(myBBox[1][0], myBBox[1][1], myBBox[0][2]);
-    glVertex3f(myBBox[1][0], myBBox[0][1], myBBox[0][2]);
-
-    glVertex3f(myBBox[0][0], myBBox[1][1], myBBox[1][2]);
-    glVertex3f(myBBox[0][0], myBBox[0][1], myBBox[1][2]);
-
-    glVertex3f(myBBox[0][0], myBBox[1][1], myBBox[1][2]);
-    glVertex3f(myBBox[0][0], myBBox[1][1], myBBox[0][2]);
-    glEnd();
-
-    glPopAttrib();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

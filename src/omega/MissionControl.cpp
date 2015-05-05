@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2014		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2014, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -135,7 +135,7 @@ void MissionControlConnection::handleData()
 ///////////////////////////////////////////////////////////////////////////////
 void MissionControlConnection::handleClosed()
 {
-    ofmsg("Mission control connection closed (id=%1%)", %getConnectionInfo().id);
+    oflog(Verbose, "Mission control connection %1% closed", %getConnectionInfo().id);
     if(myServer != NULL) myServer->closeConnection(this);
 }
         
@@ -143,7 +143,7 @@ void MissionControlConnection::handleClosed()
 void MissionControlConnection::handleConnected()
 {
     TcpConnection::handleConnected();
-    ofmsg("Mission control connection open (id=%1%)", %getConnectionInfo().id);
+    oflog(Verbose, "Mission control connection %1% open", %getConnectionInfo().id);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -247,7 +247,7 @@ void MissionControlServer::handleMessage(const char* header, void* data, int siz
         //name string
         String name((char*)data);
         sender->setName(name);
-        ofmsg("Connection %1% name changed to %2%", 
+        oflog(Verbose, "Mission Control: client %1% name changed to %2%", 
             %sender->getConnectionInfo().id
             %name);
 
@@ -378,7 +378,9 @@ void MissionControlClient::dispose()
     {
         if(myConnection->getState() == TcpConnection::ConnectionOpen)
         {
-            myConnection->goodbyeServer();
+            // SInce we are disposing this connection, just send a goodbye
+            // message without waiting for the actual connection to close.
+            myConnection->sendMessage(MissionControlMessageIds::Bye, NULL, 0);
         }
         myConnection = NULL;
     }

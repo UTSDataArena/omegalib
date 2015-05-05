@@ -1,11 +1,11 @@
 /**************************************************************************************************
  * THE OMEGA LIB PROJECT
  *-------------------------------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright 2010-2015		Electronic Visualization Laboratory, University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-------------------------------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory, University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted 
  * provided that the following conditions are met:
@@ -24,6 +24,13 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN 
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************************************/
+#include "omega/Engine.h"
+
+#ifdef OMEGA_OS_LINUX
+#include <X11/Xlib.h>
+#endif
+
+
 #include "omega/EqualizerDisplaySystem.h"
 #include "omega/MouseService.h"
 #include "omega/KeyboardService.h"
@@ -87,8 +94,12 @@ void EventUtils::deserializeEvent(Event& evt, co::DataIStream& is)
 ConfigImpl::ConfigImpl( co::base::RefPtr< eq::Server > parent): 
     eq::Config(parent) 
 {
-    omsg("[EQ] ConfigImpl::ConfigImpl");
+    //omsg("[EQ] ConfigImpl::ConfigImpl");
     SharedDataServices::setSharedData(&mySharedData);
+
+#ifdef OMEGA_OS_LINUX
+    XInitThreads();
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,7 +121,7 @@ ConfigImpl::~ConfigImpl()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool ConfigImpl::init()
 {
-    omsg("[EQ] ConfigImpl::init");
+    olog(Verbose, "[EQ] ConfigImpl::init");
 
     registerObject(&mySharedData);
     //mySharedData.setAutoObsolete(getLatency());
@@ -136,7 +147,7 @@ bool ConfigImpl::init()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void ConfigImpl::mapSharedData(const uint128_t& initID)
 {
-    omsg("[EQ] ConfigImpl::mapSharedData");
+    //omsg("[EQ] ConfigImpl::mapSharedData");
     if(!mySharedData.isAttached( ))
     {
         if(!mapObject( &mySharedData, initID))

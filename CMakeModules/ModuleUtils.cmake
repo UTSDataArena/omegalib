@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 function(select_module_version MODULE_VERSION DIR MODULE_NAME)
     string(REPLACE "X" ${MODULE_VERSION} MODULE_VERSION "vX")
-    message("Fetching and setting version for ${MODULE_NAME}")
+    #message("Fetching and setting version for ${MODULE_NAME}")
     # fetch to make sure tags are up to date.
     execute_process(COMMAND ${GIT_EXECUTABLE} fetch WORKING_DIRECTORY ${DIR})
     
@@ -55,7 +55,9 @@ function(module_def MODULE_NAME URL DESCRIPTION)
         
         select_module_version(${OMEGALIB_VERSION} ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME} ${MODULE_NAME})
         
-		file(APPEND ${MODULES_CMAKE_FILE} "add_subdirectory(${MODULE_NAME})\n")
+        # Add this module to the list of enabled modules. 
+		set(ENABLED_MODULES "${ENABLED_MODULES};${MODULE_NAME}" CACHE INTERNAL "")
+        
 		# substitute dashes with underscores in macro module names ('-' is
 		# not a valid character
 		string(REPLACE "-" "_" MACRO_MODULE_NAME ${MODULE_NAME})
@@ -65,7 +67,7 @@ function(module_def MODULE_NAME URL DESCRIPTION)
 		file(STRINGS ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME}/CMakeLists.txt 
 			${MODULE_NAME}_DEPS_RAW
 			REGEX "^request_dependency([a-zA-Z0-9_]*)")
-			
+            
 		if(NOT "${${MODULE_NAME}_DEPS_RAW}" STREQUAL "")
 			string(REGEX REPLACE "request_dependency\\(([a-zA-Z0-9_]*)\\)" "\\1 " ${MODULE_NAME}_DEPS_STR ${${MODULE_NAME}_DEPS_RAW})
 			separate_arguments(${MODULE_NAME}_DEPS_LIST WINDOWS_COMMAND "${${MODULE_NAME}_DEPS_STR}")
@@ -74,6 +76,45 @@ function(module_def MODULE_NAME URL DESCRIPTION)
 				request_dependency(${dependency})
 			endforeach()
 		endif()
+        
+        # find module version
+        set(${MODULE_NAME}_VERSION "1.0")
+		file(STRINGS ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME}/CMakeLists.txt 
+			${MODULE_NAME}_VERSION_RAW
+			REGEX "^module_version([a-zA-Z0-9_\\.]*)")
+		if(NOT "${${MODULE_NAME}_VERSION_RAW}" STREQUAL "")
+			string(REGEX REPLACE "module_version\\(([a-zA-Z0-9_\\.]*)\\)" "\\1 " ${MODULE_NAME}_VERSION ${${MODULE_NAME}_VERSION_RAW})
+        endif()
+        message("${MODULE_NAME} version ${${MODULE_NAME}_VERSION}")
+        
+        # add module pack file
+        if(EXISTS ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME}/pack.cmake)
+            file(READ ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME}/pack.cmake PACK_FILE_CONTENTS)
+            file(APPEND ${PACK_FILE}.in "#====================================================\n")
+            file(APPEND ${PACK_FILE}.in "#${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME}/pack.cmake\n")
+            file(APPEND ${PACK_FILE}.in "set(PACKAGE_NAME ${MODULE_NAME})\n")
+            file(APPEND ${PACK_FILE}.in "set(PACKAGE_DISPLAY_NAME ${MODULE_NAME})\n")
+            file(APPEND ${PACK_FILE}.in "set(PACKAGE_DESCRIPTION \"${DESCRIPTION}\")\n")
+            string(REPLACE ";" "," PACKAGE_DEPENDENCIES "${${MODULE_NAME}_DEPS_LIST}")
+            
+            # SUPER MEGA HACK: If we are packaging a build tat includes omegaOsgEarth
+            # always add it as a dependency of cyclops, since cyclops is hardcoded
+            # to use it when available. If the user installs cyclops compiled with
+            # omegaOsgEarth support but not omegaOsgEarth, cyclops won't work.
+            if("${MODULE_NAME}" STREQUAL "cyclops")
+                if(MODULES_omegaOsgEarth)
+                    file(APPEND ${PACK_FILE}.in "set(PACKAGE_DEPENDENCIES \"${PACKAGE_DEPENDENCIES},omegaOsgEarth\")\n")
+                else()
+                    file(APPEND ${PACK_FILE}.in "set(PACKAGE_DEPENDENCIES \"${PACKAGE_DEPENDENCIES}\")\n")
+                endif()
+            else()
+                file(APPEND ${PACK_FILE}.in "set(PACKAGE_DEPENDENCIES \"${PACKAGE_DEPENDENCIES}\")\n")
+            endif()
+            # parse a module version from CMakeLists or add a version.txt file
+            file(APPEND ${PACK_FILE}.in "set(PACKAGE_VERSION ${${MODULE_NAME}_VERSION})\n")
+            file(APPEND ${PACK_FILE}.in "setup_package()\n")
+            file(APPEND ${PACK_FILE}.in "${PACK_FILE_CONTENTS}")
+        endif()
 	endif()
 endfunction()
 
@@ -87,6 +128,11 @@ macro(request_dependency MODULE_NAME)
         endif()
 		message("Module ${MODULE_NAME} is required ${CUR_MODULE} but not currently installed. Marking for installation...")
 	endif()
+endmacro()
+
+#-------------------------------------------------------------------------------
+macro(module_version VER)
+    set(${CMAKE_CURRENT_SOURCE_DIR}_VERSION ${VER})
 endmacro()
 
 #-------------------------------------------------------------------------------
@@ -104,4 +150,11 @@ macro(declare_native_module MODULE_NAME)
     else()
         set_target_properties(${MODULE_NAME} PROPERTIES SUFFIX ".so")
     endif()
+endmacro()
+
+
+#-------------------------------------------------------------------------------
+macro(merge_pack_file)
+    file(READ pack.cmake PACK_FILE_CONTENTS)
+    file(APPEND ${PACK_FILE}.in "${PACK_FILE_CONTENTS}")
 endmacro()

@@ -1,12 +1,12 @@
 /******************************************************************************
 * THE OMEGA LIB PROJECT
 *-----------------------------------------------------------------------------
-* Copyright 2010-2014	Electronic Visualization Laboratory,
+* Copyright 2010-2015	Electronic Visualization Laboratory,
 *							University of Illinois at Chicago
 * Authors:
 *  Alessandro Febretti		febret@gmail.com
 *-----------------------------------------------------------------------------
-* Copyright (c) 2010-2014, Electronic Visualization Laboratory,
+* Copyright (c) 2010-2015, Electronic Visualization Laboratory,
 * University of Illinois at Chicago
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without modification,
@@ -38,7 +38,7 @@
 #ifndef __PLATFORM_H__
 #define __PLATFORM_H__
 
-#include "osystem.h"
+#include "otypes.h"
 
 namespace omega
 {
@@ -56,6 +56,10 @@ namespace omega
         //! The user interface / 2D graphics scale that should be used on this
         //! platform. Read from config/platform/scale, defaults to 1.
         static float scale;
+
+        //! When set to true, print warning about deprecated functionality being 
+        //! used.
+        static bool deprecationWarnings;
 
     private:
         static Dictionary<String, bool> myFlags;

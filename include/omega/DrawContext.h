@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -96,6 +96,8 @@ namespace omega
         void popTileConfig();
         //@}
 
+        void prepare(uint64 frameNum);
+
         //! The drawFrame method is the 'entry point' called by the display 
         //! system to render a full frame. drawFrame does all required setup
         //! operations (viewport, stereo mode etc), and calls the Renderer draw 
@@ -110,8 +112,6 @@ namespace omega
         void setupInterleaver();
         void initializeStencilInterleaver();
         DisplayTileConfig::StereoMode getCurrentStereoMode();
-        // Clears the frame buffer.
-        void clear();
 
 
         //! Utility method: returns true if side by side stereo is enabled

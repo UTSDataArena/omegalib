@@ -1,11 +1,11 @@
 /**************************************************************************************************
  * THE OMEGA LIB PROJECT
  *-------------------------------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright 2010-2015		Electronic Visualization Laboratory, University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-------------------------------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory, University of Illinois at Chicago
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory, University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, are permitted 
  * provided that the following conditions are met:
@@ -36,7 +36,7 @@ NodeImpl::NodeImpl( eq::Config* parent ):
 	Node(parent),
 	myServer(NULL)
 {
-	omsg("[EQ] NodeImpl::NodeImpl");
+	//omsg("[EQ] NodeImpl::NodeImpl");
 
 	SystemManager* sys = SystemManager::instance();
 
@@ -51,7 +51,7 @@ NodeImpl::NodeImpl( eq::Config* parent ):
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool NodeImpl::configInit( const eq::uint128_t& initID )
 {
-	ofmsg("[EQ] NodeImpl::configInit %1%", %initID);
+	//ofmsg("[EQ] NodeImpl::configInit %1%", %initID);
 
 	SystemManager* sys = SystemManager::instance();
 	if(!sys->isMaster())

@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -99,7 +99,7 @@ namespace omega
     private:
         void generateEqConfig();
         void setupEqInitArgs(int& numArgs, const char** argv);
-        String buildTileConfig(String& indent, const String tileName, int x, int y, int width, int height, int device, int curdevice, bool fullscreen, bool borderless, bool offscreen, int xDisplay);
+        String buildTileConfig(String& indent, const String tileName, int x, int y, int width, int height, int port, int device, int curdevice, bool fullscreen, bool borderless, bool offscreen);
 
     private:
         SystemManager* mySys;

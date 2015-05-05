@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -708,9 +708,22 @@ Camera* getOrCreateCamera(const String& name)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void deleteCamera(Camera* c)
+{
+    oassert(c != NULL);
+    Engine::instance()->destroyCamera(c);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 bool isMaster()
 {
     return SystemManager::instance()->isMaster();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool isHeadless()
+{
+    return SystemManager::instance()->getDisplaySystem()->getId() == DisplaySystem::Null;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -731,6 +744,13 @@ void setTilesEnabled(int tilex, int tiley, int tilew, int tileh, bool enabled)
 {
     DisplayConfig& dc = SystemManager::instance()->getDisplaySystem()->getDisplayConfig();
     dc.setTilesEnabled(tilex, tiley, tilew, tileh, enabled);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void setTileNamesEnabled(const String& tileNames)
+{
+    DisplayConfig& dc = SystemManager::instance()->getDisplaySystem()->getDisplayConfig();
+    dc.setTilesEnabled(tileNames);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -804,7 +824,7 @@ vector<String> getTiles()
 {
     vector<String> res;
     DisplayConfig& dc = SystemManager::instance()->getDisplaySystem()->getDisplayConfig();
-    typedef KeyValue<String, DisplayTileConfig*> TileItem;
+    typedef KeyValue<String, Ref<DisplayTileConfig> > TileItem;
     foreach(TileItem ti, dc.tiles)
     {
         res.push_back(ti.getKey());
@@ -851,7 +871,7 @@ float getFarZ()
 boost::python::tuple getDisplayPixelSize()
 {
     DisplaySystem* ds = SystemManager::instance()->getDisplaySystem();
-    Vector2i size = ds->getDisplayConfig().getCanvasRect().size();
+    Vector2i size = ds->getDisplayConfig().displayResolution;
     return boost::python::make_tuple(size.x(), size.y());
 }
 
@@ -969,12 +989,37 @@ void printModules()
 class ActorPythonWrapper: public Actor, public wrapper<Actor>
 {
 public:
-    ActorPythonWrapper(): Actor() { ModuleServices::addModule(this); }
-    ActorPythonWrapper(const String& str): Actor(str) { ModuleServices::addModule(this); }
+    ActorPythonWrapper(): Actor() { 
+        ModuleServices::addModule(this); 
+    }
+    ActorPythonWrapper(const String& str): Actor(str) { 
+        ModuleServices::addModule(this); 
+    }
+
+    ~ActorPythonWrapper()
+    {
+
+    }
 
     void dispose()
     {
-        if(override f = this->get_override("dispose")) f();
+        PythonInterpreter* pi = SystemManager::instance()->getScriptInterpreter();
+        pi->lockInterpreter();
+        // This is needed to avoid a crash when this objects gets disposed during
+        // finalization ie. after all python objects have been destroyed in
+        // PythonInterpreter::clean()
+        // Note that we get here during EngineModule final dispose.
+        Py_INCREF(detail::wrapper_base_::get_owner(*this));
+        try
+        {
+            override f = this->get_override("dispose");
+            if(f) f();
+        }
+        catch(const boost::python::error_already_set&)
+        {
+            PyErr_Print();
+        }
+        pi->unlockInterpreter();
     }
     virtual void default_dispose()
     {
@@ -982,6 +1027,8 @@ public:
 
     void onUpdate(const UpdateContext& context) 
     {
+        PythonInterpreter* pi = SystemManager::instance()->getScriptInterpreter();
+        pi->lockInterpreter();
         try
         {
             if(override f = this->get_override("onUpdate")) 
@@ -995,6 +1042,7 @@ public:
         {
             PyErr_Print();
         }
+        pi->unlockInterpreter();
     }
     void default_onUpdate(const UpdateContext& context) 
     { 
@@ -1003,6 +1051,8 @@ public:
 
     void onEvent(const Event& evt)
     {
+        PythonInterpreter* pi = SystemManager::instance()->getScriptInterpreter();
+        pi->lockInterpreter();
         try
         {
             // Call funtion with no arguments. The python event handler will use
@@ -1017,6 +1067,7 @@ public:
         {
             PyErr_Print();
         }
+        pi->unlockInterpreter();
     }
     void default_onEvent(const Event& evt)
     {
@@ -1025,6 +1076,8 @@ public:
 
     bool onCommand(const String& cmd)
     {
+        PythonInterpreter* pi = SystemManager::instance()->getScriptInterpreter();
+        pi->lockInterpreter();
         try
         {
             if(override f = this->get_override("onCommand"))
@@ -1036,6 +1089,7 @@ public:
             PyErr_Print();
             return false;
         }
+        pi->unlockInterpreter();
     }
     bool default_onCommand(const String& cmd)
     {
@@ -1046,19 +1100,22 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 void setClearColor(const Color& color)
 {
-    SystemManager::instance()->getDisplaySystem()->setBackgroundColor(color);
+    Camera* c = Engine::instance()->getDefaultCamera();
+    c->setBackgroundColor(color);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void clearColor(bool enabled)
 {
-    SystemManager::instance()->getDisplaySystem()->clearColor(enabled);
+    Camera* c = Engine::instance()->getDefaultCamera();
+    c->clearColor(enabled);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void clearDepth(bool enabled)
 {
-    SystemManager::instance()->getDisplaySystem()->clearDepth(enabled);
+    Camera* c = Engine::instance()->getDefaultCamera();
+    c->clearDepth(enabled);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1074,6 +1131,7 @@ void removeQuickCommand(const String& cmd)
 }
 
 BOOST_PYTHON_FUNCTION_OVERLOADS(querySceneRayOverloads, querySceneRay, 3, 4);
+
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(NodeYawOverloads, yaw, 1, 2) 
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(NodePitchOverloads, pitch, 1, 2) 
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(NodeRollOverloads, roll, 1, 2) 
@@ -1184,9 +1242,12 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_GETTER(Event, getPosition)
         PYAPI_GETTER(Event, getOrientation)
         PYAPI_GETTER(Event, getExtraDataInt)
-        PYAPI_GETTER(Event, getExtraDataString)
-        PYAPI_GETTER(Event, getExtraDataFloat)
         PYAPI_GETTER(Event, getExtraDataItems)
+        PYAPI_GETTER(Event, getExtraDataFloat)
+		PYAPI_GETTER(Event, getExtraDataString)
+		PYAPI_GETTER(Event, getExtraDataVector3)
+		PYAPI_GETTER(Event, getExtraDataType)
+		PYAPI_GETTER(Event, getExtraDataSize)
         ;
 
     PYAPI_ENUM(Node::TransformSpace, Space)
@@ -1264,8 +1325,6 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(SceneNode, setSelected)
         PYAPI_METHOD(SceneNode, isSelectable)
         PYAPI_METHOD(SceneNode, setSelectable)
-        PYAPI_METHOD(SceneNode, isBoundingBoxVisible)
-        PYAPI_METHOD(SceneNode, setBoundingBoxVisible)
         PYAPI_METHOD(SceneNode, setTag)
         PYAPI_GETTER(SceneNode, getTag)
         PYAPI_GETTER(SceneNode, setFacingCamera)
@@ -1288,6 +1347,8 @@ BOOST_PYTHON_MODULE(omega)
     PYAPI_REF_BASE_CLASS(CameraController)
         PYAPI_METHOD(CameraController, getSpeed)
         PYAPI_METHOD(CameraController, setSpeed)
+        PYAPI_METHOD(CameraController, setFreeFlyEnabled)
+        PYAPI_METHOD(CameraController, isFreeFlyEnabled)
         PYAPI_METHOD(CameraController, reset)
     ;
 
@@ -1388,7 +1449,9 @@ BOOST_PYTHON_MODULE(omega)
         .add_property("red", &Color::getRed, &Color::setRed)
         .add_property("green", &Color::getGreen, &Color::setGreen)
         .add_property("blue", &Color::getBlue, &Color::setBlue)
-        .add_property("alpha", &Color::getAlpha, &Color::setAlpha);
+        .add_property("alpha", &Color::getAlpha, &Color::setAlpha)
+        PYAPI_METHOD(Color, toString)
+        ;
 
     // Actor
     //PYAPI_REF_BASE_CLASS(Actor)
@@ -1604,6 +1667,7 @@ BOOST_PYTHON_MODULE(omega)
     def("getCamera", getCamera, PYAPI_RETURN_REF);
     def("getCameraById", getCameraById, PYAPI_RETURN_REF);
     def("getOrCreateCamera", getOrCreateCamera, PYAPI_RETURN_REF);
+    def("deleteCamera", deleteCamera);
     def("getScene", getScene, PYAPI_RETURN_REF);
     def("getSoundEnvironment", getSoundEnvironment, PYAPI_RETURN_REF);
     def("isSoundEnabled", isSoundEnabled);
@@ -1626,6 +1690,7 @@ BOOST_PYTHON_MODULE(omega)
     def("ogetdataprefix", ogetdataprefix);
     def("osetdataprefix", osetdataprefix);
     def("isMaster", isMaster);
+    def("isHeadless", isHeadless);
     def("loadImage", loadImage, PYAPI_RETURN_REF);
 
     def("addDataPath", addDataPath);
@@ -1637,6 +1702,7 @@ BOOST_PYTHON_MODULE(omega)
     def("getHostname", getHostname, PYAPI_RETURN_VALUE);
     def("isHostInTileSection", isHostInTileSection);
     def("setTilesEnabled", setTilesEnabled);
+    def("setTileNamesEnabled", setTileNamesEnabled);
     def("printModules", printModules);
 
     def("isEventDispatchEnabled", isEventDispatchEnabled);

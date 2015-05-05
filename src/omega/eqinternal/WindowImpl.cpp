@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2014		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2014, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -43,6 +43,20 @@
 using namespace omega;
 using namespace co::base;
 using namespace std;
+
+GLEWContext* sGlewContext;
+
+///////////////////////////////////////////////////////////////////////////
+GLEWContext* glewGetContext()
+{
+    return sGlewContext;
+}
+
+///////////////////////////////////////////////////////////////////////////
+void glewSetContext(const GLEWContext* context)
+{
+    sGlewContext = (GLEWContext*)context;
+}
     
 ///////////////////////////////////////////////////////////////////////////////
 WindowImpl::WindowImpl(eq::Pipe* parent): 
@@ -86,6 +100,15 @@ bool WindowImpl::configInit(const uint128_t& initID)
     bool res = Window::configInit(initID);
     sInitLock.unlock();
     return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool WindowImpl::configExit()
+{
+    myRenderer->dispose();
+    myRenderer = NULL;
+
+    return Window::configExit();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,7 +168,10 @@ void WindowImpl::frameStart( const uint128_t& frameID, const uint32_t frameNumbe
         myVisible = myTile->enabled;
         if(myTile->enabled)
         {
+            // The window switched back to visible.
+            // show it and bring it to front.
             getSystemWindow()->show();
+            getSystemWindow()->bringToFront();
         }
         else
         {

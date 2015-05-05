@@ -1,12 +1,12 @@
 /******************************************************************************
  * THE OMEGA LIB PROJECT
  *-----------------------------------------------------------------------------
- * Copyright 2010-2013		Electronic Visualization Laboratory, 
+ * Copyright 2010-2015		Electronic Visualization Laboratory, 
  *							University of Illinois at Chicago
  * Authors:										
  *  Alessandro Febretti		febret@gmail.com
  *-----------------------------------------------------------------------------
- * Copyright (c) 2010-2013, Electronic Visualization Laboratory,  
+ * Copyright (c) 2010-2015, Electronic Visualization Laboratory,  
  * University of Illinois at Chicago
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -507,7 +507,8 @@ Font* DrawInterface::getFont(omega::String fontName, FTGLFontType type)
             return myTypeFonts[(int)type];
     }
 
-    ofmsg("Creating Font %1%", %fontName);
+    oflog(Verbose, "Creating Font %1%", %fontName);
+    
     Vector<String> args = StringUtils::split(fontName);
     if(args.size() < 2)
     {
