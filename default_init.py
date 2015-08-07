@@ -10,6 +10,8 @@ orun('system/quickCommands.py')
 speedLabel = None
 mainmnu = None
 
+eyeSep = getDefaultCamera().getEyeSeparation()
+
 # add the current path to the data search paths.
 import os
 addDataPath(os.getcwd())
@@ -96,9 +98,10 @@ def _onAppStart():
 		
 		ss.getSlider().setValue(value)
 		
-	mi = sysmnu.addButton("Enable Stereo", "toggleStereo()")
+	global eyeSep
+	mi = sysmnu.addButton("Enable Stereo", "_doEyeSep()")
 	mi.getButton().setCheckable(True)
-	mi.getButton().setChecked(isStereoEnabled())
+	mi.getButton().setChecked(getDefaultCamera().getEyeSeparation() == eyeSep)
 	
 	mi = sysmnu.addButton("Toggle Console", ":c")
 	mi = sysmnu.addButton("List Active Modules", "printModules()")
@@ -107,6 +110,15 @@ def _onAppStart():
 
 shuttingDown = False
 fadeOutVal = 0
+
+def _doEyeSep():
+	global eyeSep
+	if getDefaultCamera().getEyeSeparation() != 0:
+		eyeSep = getDefaultCamera().getEyeSeparation()
+		getDefaultCamera().setEyeSeparation(0)
+	else:
+		getDefaultCamera().setEyeSeparation(eyeSep)
+
 
 def _shutdown():
 	global shuttingDown
