@@ -681,20 +681,24 @@ void Container::handleEvent(const Event& evt)
     {
         // Container is displayed in 3d mode. Convert pointer rays and wand rays into
         // standard pointer events.
-        if(my3dSettings.enable3d && isPointerInteractionEnabled())
-        {
-            Event newEvt;
-            if(rayToPointerEvent(evt, newEvt))
-            {
-                foreach(Widget* w, myChildren)
-                {
-                    w->handleEvent(newEvt);
-                }
-            }
-            // Copy back processe flag into original event.
-            if(newEvt.isProcessed()) evt.setProcessed();
-        }
-        else
+// removed due to this acting differently to if it were a widget.
+// resulted in webview mouse events not getting sent to 3d container unless a click happened
+// [Darren 16Jul15]
+//
+//         if(my3dSettings.enable3d && isPointerInteractionEnabled())
+//         {
+//             Event newEvt;
+//             if(rayToPointerEvent(evt, newEvt))
+//             {
+//                 foreach(Widget* w, myChildren)
+//                 {
+//                     w->handleEvent(newEvt);
+//                 }
+//             }
+//             // Copy back processe flag into original event.
+//             if(newEvt.isProcessed()) evt.setProcessed();
+//         }
+//         else
         {
             if(isPointerInteractionEnabled())
             {
