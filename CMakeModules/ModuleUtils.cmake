@@ -3,7 +3,8 @@ function(select_module_version MODULE_VERSION DIR MODULE_NAME)
     string(REPLACE "X" ${MODULE_VERSION} MODULE_VERSION "vX")
     #message("Fetching and setting version for ${MODULE_NAME}")
     # fetch to make sure tags are up to date.
-    execute_process(COMMAND ${GIT_EXECUTABLE} fetch WORKING_DIRECTORY ${DIR})
+	## comment out so I don't lose my current version of modules
+    ## execute_process(COMMAND ${GIT_EXECUTABLE} fetch WORKING_DIRECTORY ${DIR})
     
     # Can we find a tag with the full omegalib version name (i.e. v6.1)
     execute_process(COMMAND ${GIT_EXECUTABLE} tag -l ${MODULE_VERSION} 
@@ -21,7 +22,7 @@ function(select_module_version MODULE_VERSION DIR MODULE_NAME)
         string(REGEX MATCH "v[0-9]+" MODULE_VERSION_MAJOR ${MODULE_VERSION})
         execute_process(COMMAND ${GIT_EXECUTABLE} tag -l *${MODULE_VERSION_MAJOR}* 
             WORKING_DIRECTORY ${DIR} OUTPUT_VARIABLE RESULT)
-        
+
         if(NOT ${RESULT} STREQUAL "")
             # remove trailing newline
             string(REPLACE "\n" "" RESULT ${RESULT})
