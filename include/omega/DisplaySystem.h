@@ -59,6 +59,7 @@ public:
     // sets up the display system. Called before initalize.
     virtual void setup(Setting& setting) 
 	{
+		mySetting = &setting;
 		DisplayConfig::LoadConfig(setting, myDisplayConfig);
 	}
 
@@ -116,6 +117,7 @@ protected:
     }
 
 	DisplayConfig myDisplayConfig;
+	Setting* mySetting;
 };
 
 }; // namespace omega
