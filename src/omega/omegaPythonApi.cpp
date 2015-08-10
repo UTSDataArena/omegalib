@@ -1433,6 +1433,8 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(Camera, setSceneEnabled)
         PYAPI_METHOD(Camera, isOverlayEnabled)
         PYAPI_METHOD(Camera, setOverlayEnabled)
+        PYAPI_METHOD(Camera, isCullingEnabled)
+        PYAPI_METHOD(Camera, setCullingEnabled)
         PYAPI_METHOD(Camera, setNearFarZ)
         PYAPI_METHOD(Camera, getNearZ)
         PYAPI_METHOD(Camera, getFarZ)
@@ -1441,6 +1443,9 @@ BOOST_PYTHON_MODULE(omega)
         PYAPI_METHOD(Camera, isClearColorEnabled)
         PYAPI_METHOD(Camera, clearDepth)
         PYAPI_METHOD(Camera, isClearDepthEnabled)
+        PYAPI_METHOD(Camera, queueFrameDraw)
+        PYAPI_METHOD(Camera, setMaxFps)
+        PYAPI_METHOD(Camera, getMaxFps)
         ;
 
     // Color
