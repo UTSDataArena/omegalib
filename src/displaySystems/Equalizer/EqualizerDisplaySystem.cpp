@@ -252,8 +252,8 @@ void EqualizerDisplaySystem::generateEqConfig()
     for(int n = 0; n < eqcfg.numNodes; n++)
     {
         DisplayNodeConfig& nc = eqcfg.nodes[n];
-        // If all tiles are disabled for this node, skip it.
-        if(!nc.enabled) continue;
+        // If all tiles are disabled for this node and it's also remote, skip it.
+        if(!nc.enabled && nc.isRemote) continue;
 
         if(nc.isRemote)
         {
