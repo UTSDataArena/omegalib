@@ -1,3 +1,3 @@
 [submodule "omicron"]
 	path = omicron
-	url = /da/repo/projects/daOmegalib/daOmicron/
+	url = git@codeine.research.uts.edu.au:da/omicron.git
