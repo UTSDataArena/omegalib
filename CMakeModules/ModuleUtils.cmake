@@ -29,8 +29,8 @@ function(module_def MODULE_NAME URL DESCRIPTION)
 			execute_process(COMMAND ${GIT_EXECUTABLE} clone ${URL} ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME})
 			message(STATUS "Module ${MODULE_NAME} installed")
 		endif()
-        
-        select_module_branch(${GIT_BRANCH} ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME} ${MODULE_NAME})
+        message("ignoring the branch setting in git..")
+        #select_module_branch(${GIT_BRANCH} ${CMAKE_SOURCE_DIR}/modules/${MODULE_NAME} ${MODULE_NAME})
         
         # Add this module to the list of enabled modules. 
 		set(ENABLED_MODULES "${ENABLED_MODULES};${MODULE_NAME}" CACHE INTERNAL "")
