@@ -149,7 +149,7 @@ if(MODULES_UPDATE_LIST)
 	if(GIT_EXECUTABLE)
 		# changed hub url to Data Arena version
 		# set(OMEGA_HUB_URL "http://omega-hub.github.io/hub" CACHE STRING "url to directory containing the module index")
-		set(OMEGA_HUB_URL "https://codeine.research.uts.edu.au/da/hub" CACHE STRING "directory containing the module index")
+		set(OMEGA_HUB_URL "https://github.com/UTSDataArena/hub" CACHE STRING "directory containing the module index")
 		# the modules variable is a list of enabled modues, used to simplify configuration.
 		set(MODULES " " CACHE STRING "The list of enabled modules")
 		separate_arguments(MODULES_LIST WINDOWS_COMMAND "${MODULES}")
