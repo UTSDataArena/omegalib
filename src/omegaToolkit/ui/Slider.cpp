@@ -112,9 +112,9 @@ void Slider::handleEvent(const Event& evt)
 		{
 			if(myPressed && evt.getType() == Event::Move)
 			{
-                int dx = point[0] - myPressPos;
-                int dValue = dx * myTicks / mySize[0];
-				int newValue = myValue + dValue;
+				float newValueF = float(point[0] * (myTicks - 1)) / float(mySize[0]);
+				int newValue = newValueF + 0.5f;
+
 				if(newValue < 0) newValue = 0;
 				if(newValue > (myTicks - 1)) newValue = myTicks - 1;
 
