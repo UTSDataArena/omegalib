@@ -373,6 +373,8 @@ BOOST_PYTHON_MODULE(omegaToolkit)
         PYAPI_METHOD(Slider, setTicks)
         PYAPI_METHOD(Slider, setValue)
         PYAPI_METHOD(Slider, getValue)
+        PYAPI_METHOD(Slider, setDeferUpdate)
+        PYAPI_METHOD(Slider, getDeferUpdate)
         ;
 
     // Label
