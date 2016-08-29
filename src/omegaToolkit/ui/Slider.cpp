@@ -94,6 +94,8 @@ void Slider::handleEvent(const Event& evt)
 				Event e;
 				e.reset(Event::ChangeValue, Service::Ui, getId());
 				dispatchUIEvent(e);
+
+				myValueChanged = false;
 			}
 		}
 
