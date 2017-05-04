@@ -1,3 +1,3 @@
 [submodule "omicron"]
 	path = omicron
-	url = https://github.com/UTSDataArena/omicron
+	url = git@codeine.research.uts.edu.au:da/omicron.git
